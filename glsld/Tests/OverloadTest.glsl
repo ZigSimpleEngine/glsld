@@ -6,6 +6,7 @@
 #extension GL_EXT_buffer_reference_uvec2           : require
 #extension GL_KHR_cooperative_matrix               : require
 #extension GL_KHR_memory_scope_semantics           : require
+#extension GL_KHR_cooperative_matrix               : require
 #extension GL_NV_explicit_typecast                 : require
 
 void OverloadFunction(int16_t Int16, int32_t Int32, int64_t Int64, float32_t Float32) {}
