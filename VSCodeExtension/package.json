@@ -15,6 +15,9 @@
 	"bugs": {
 		"url": "https://github.com/LBV2012-26/glsld/issues"
 	},
+	"activationEvents": [
+		"onLanguage:glsl"
+	],
 	"engines": {
 		"vscode": "^1.100.0"
 	},
