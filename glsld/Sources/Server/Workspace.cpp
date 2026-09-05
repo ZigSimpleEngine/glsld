@@ -344,7 +344,7 @@ namespace glsld {
             return false;
         };
 
-        document.FinalizeInjectedMacros(source_file);
+        document.FinalizeInjectedMacros();
 
         if (Cancelled()) return;
         SymbolLinker linker(document, version_replica, version_pointer);

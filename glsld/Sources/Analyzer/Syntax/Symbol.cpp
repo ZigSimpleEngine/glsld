@@ -30,6 +30,7 @@ namespace glsld {
         case SymbolKind::kMacro:
             return 14; // Constant
         case SymbolKind::kStruct:
+        case SymbolKind::kOpaqueType:
             return 23; // Struct
         default:
             return 13; // Fallback to Variable
@@ -326,7 +327,11 @@ namespace glsld {
     const SymbolInfo* Scope::FindTypeSymbol(std::string_view name) const {
         for (const auto* scope = this; scope != nullptr; scope = scope->parent_) {
             const auto* symbol = scope->FindSymbolInCurrentScope(name);
-            if (symbol != nullptr && (symbol->kind == SymbolKind::kStruct || symbol->kind == SymbolKind::kInterface)) {
+            if (symbol != nullptr &&
+                (symbol->kind == SymbolKind::kStruct ||
+                 symbol->kind == SymbolKind::kInterface ||
+                 symbol->kind == SymbolKind::kOpaqueType))
+            {
                 return symbol;
             }
 
@@ -340,7 +345,11 @@ namespace glsld {
 #pragma warning(push)
 #pragma warning(disable : 4456)
                 const auto* symbol = child->FindSymbolInCurrentScope(name);
-                if (symbol != nullptr && (symbol->kind == SymbolKind::kStruct || symbol->kind == SymbolKind::kInterface)) {
+                if (symbol != nullptr &&
+                    (symbol->kind == SymbolKind::kStruct ||
+                     symbol->kind == SymbolKind::kInterface ||
+                     symbol->kind == SymbolKind::kOpaqueType))
+                {
                     return symbol;
                 }
 #pragma warning(pop)
@@ -445,7 +454,10 @@ namespace glsld {
             block_base_names_.try_emplace(base_name, inserted_symbol);
         }
 
-        if (inserted_symbol->kind == SymbolKind::kStruct || inserted_symbol->kind == SymbolKind::kInterface) {
+        if (inserted_symbol->kind == SymbolKind::kStruct ||
+            inserted_symbol->kind == SymbolKind::kInterface ||
+            inserted_symbol->kind == SymbolKind::kOpaqueType)
+        {
             visible_types_.try_emplace(inserted_symbol->name, inserted_symbol);
             if (!base_name.empty()) {
                 visible_types_.try_emplace(std::move(base_name), inserted_symbol);

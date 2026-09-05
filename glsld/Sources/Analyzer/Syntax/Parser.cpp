@@ -142,6 +142,10 @@ namespace glsld {
                 return nullptr;
             }
 
+            if (TryParseTemplateDefinition()) {
+                continue;
+            }
+
             auto* statement = ParseStatement();
             if (statement != nullptr) {
                 root->statements.push_back(statement);
@@ -641,6 +645,21 @@ namespace glsld {
         // current token is specifier such as: Func("const int" input)
         TypeSpec type_spec(document_.arena.get());
 
+        auto ParseTemplateArguments = [this, &type_spec]() -> void {
+            if (MatchAndConsume(TokenType::kLessThan)) { // coopmat<float16_t, gl_ScopeSubgroup, M, N, gl_MatrixUseA>;
+                while (current_token().type != TokenType::kEndOfFile &&
+                       current_token().type != TokenType::kGreaterThan)
+                {
+                    type_spec.template_args.push_back(ParseTemplateArgument());
+                    if (!MatchAndConsume(TokenType::kComma)) {
+                        break;
+                    }
+                }
+
+                MatchAndConsume(TokenType::kGreaterThan);
+            }
+        };
+
         while (true) {
             const auto& token = current_token();
 
@@ -664,19 +683,7 @@ namespace glsld {
                     continue;
                 }
 
-                if (MatchAndConsume(TokenType::kLessThan)) { // coopmat<float16_t, gl_ScopeSubgroup, M, N, gl_MatrixUseA>;
-                    while (current_token().type != TokenType::kEndOfFile &&
-                           current_token().type != TokenType::kGreaterThan)
-                    {
-                        type_spec.template_args.push_back(ParseTemplateArgument());
-                        if (!MatchAndConsume(TokenType::kComma)) {
-                            break;
-                        }
-                    }
-
-                    MatchAndConsume(TokenType::kGreaterThan);
-                }
-
+                ParseTemplateArguments();
                 continue;
             }
 
@@ -688,13 +695,15 @@ namespace glsld {
 
                 const auto& next_token = PeekToken();
                 if (next_token.type != TokenType::kIdentifier &&
-                    next_token.type != TokenType::kOpenBracket)
+                    next_token.type != TokenType::kOpenBracket &&
+                    next_token.type != TokenType::kLessThan)
                 {
                     break;
                 }
 
                 type_spec.specifiers.push_back(token);
                 ConsumeToken();
+                ParseTemplateArguments();
                 continue;
             }
 
@@ -1172,6 +1181,82 @@ namespace glsld {
         }
 
         type_spec.spirv_intrinsics.push_back(node);
+        return true;
+    }
+
+    bool Parser::TryParseTemplateDefinition() {
+        // current token is "template"
+        if (current_token().text != "template") {
+            return false;
+        }
+
+        const auto begin = token_index_;
+        auto Fail = [this, begin]() -> bool {
+            token_index_ = begin;
+            return false;
+        };
+
+        ConsumeToken();
+
+        if (!MatchAndConsume(TokenType::kLessThan)) {
+            return Fail();
+        }
+
+        std::vector<TemplateParameter> params;
+        while (current_token().type != TokenType::kEndOfFile &&
+               current_token().type != TokenType::kGreaterThan)
+        {
+            const auto param_type = current_token().text;
+            ConsumeToken();
+
+            if (current_token().type != TokenType::kIdentifier) {
+                return Fail();
+            }
+
+            params.push_back(TemplateParameter{
+                .type = param_type,
+                .name = current_token().text
+            });
+            ConsumeToken();
+
+            if (MatchAndConsume(TokenType::kComma)) {
+                continue;
+            }
+
+            if (current_token().type != TokenType::kGreaterThan) {
+                return Fail();
+            }
+        }
+
+        if (!MatchAndConsume(TokenType::kGreaterThan) || current_token().text != "class") { // 保留关键字不用白不用
+            return Fail();
+        }
+        ConsumeToken();
+
+        if (current_token().type != TokenType::kIdentifier &&
+            current_token().type != TokenType::kBuiltInType)
+        {
+            return Fail();
+        }
+
+        const auto& name_token    = current_token();
+        ConsumeToken();
+
+        if (!MatchAndConsume(TokenType::kSemicolon)) {
+            return Fail();
+        }
+
+        auto* symbol = current_scope()->AddSymbol(nullptr, name_token.text, name_token.location, SymbolKind::kOpaqueType);
+        symbol->type_info = {
+            .typename_token = name_token,
+            .type_desc{ .family = BaseFamily::kOpaque }
+        };
+
+        document_.template_info.push_back(TemplateInfo{
+            .name       = name_token.text,
+            .parameters = std::move(params)
+        });
+
         return true;
     }
 

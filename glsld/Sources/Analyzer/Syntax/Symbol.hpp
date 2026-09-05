@@ -21,6 +21,7 @@ namespace glsld {
         kFunctionImpl,
         kInterface,
         kMacro,
+        kOpaqueType,
         kParameter,
         kPreprocessor,
         kStruct,

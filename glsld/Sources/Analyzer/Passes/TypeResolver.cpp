@@ -1604,8 +1604,13 @@ namespace glsld {
                 return {};
             }
 
-            info.block_symbol = type_symbol;
             document_.bindings.try_emplace(typename_token.location, type_symbol);
+
+            if (type_symbol->kind == SymbolKind::kOpaqueType) {
+                info.type_desc = type_symbol->type_info.type_desc;
+            } else {
+                info.block_symbol = type_symbol;
+            }
         }
 
         std::vector<TemplateArgumentInfo> template_args;
@@ -1621,7 +1626,9 @@ namespace glsld {
         }
 
         info.template_args = document_.arena->CopySpan<TemplateArgumentInfo>(template_args);
-        info.type_desc     = ParseTypeDescriptor(typename_token.text);
+        if (info.type_desc.family == BaseFamily::kUnknown) {
+            info.type_desc = ParseTypeDescriptor(typename_token.text);
+        }
 
         return info;
     }

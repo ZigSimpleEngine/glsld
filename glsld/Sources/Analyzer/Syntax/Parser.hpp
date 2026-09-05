@@ -88,6 +88,7 @@ namespace glsld {
 
         bool TryParseLayoutQualifier(TypeSpec& type_spec);
         bool TryParseSpirvIntrinsics(TypeSpec& type_spec);
+        bool TryParseTemplateDefinition();
 
         DeclarationGroupNode* ParseVariableDeclarationList(TypeSpec type_spec);
         ExpressionStatementNode* ParseExpressionStatement();

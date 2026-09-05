@@ -597,7 +597,7 @@ namespace glsld {
             return nullptr;
         }
 
-        document->FinalizeInjectedMacros(source_file);
+        document->FinalizeInjectedMacros();
 
         SymbolLinker linker(*document, 0, nullptr);
         TypeResolver resolver(*document, 0, nullptr);

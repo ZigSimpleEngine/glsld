@@ -27,6 +27,16 @@ namespace glsld {
         std::vector<Token> params;
     };
 
+    struct TemplateParameter {
+        std::string_view type;
+        std::string_view name;
+    };
+
+    struct TemplateInfo {
+        std::string_view               name;
+        std::vector<TemplateParameter> parameters;
+    };
+
     using MacroTraceMap     = ankerl::unordered_dense::map<SourceLocation, Token, LocationHash>;
     using MacroExpansionMap = ankerl::unordered_dense::map<SourceLocation, std::vector<Token>, LocationHash>;
     using MacroTable        = StringHeteroHashMap<MacroDefinition>;
@@ -58,6 +68,7 @@ namespace glsld {
         std::vector<std::string>        dependencies; // [URI]
         std::vector<Builtin>            builtins;
         std::vector<MetadataAttachment> metadata_attachments;
+        std::vector<TemplateInfo>       template_info;
         DocumentSymbols                 symbols;
         std::string                     source;
         std::vector<Token>              raw_tokens;
@@ -87,7 +98,7 @@ namespace glsld {
         void PrepareInjectedMacros(const SourceFile* source_file);
         void InjectMacro(MacroDefinition definition);
         void InjectMacro(std::string_view name);
-        void FinalizeInjectedMacros(const SourceFile* source_file);
+        void FinalizeInjectedMacros();
 
     private:
         StringHeteroHashMap<MacroDefinition> pending_macros_;

@@ -1535,6 +1535,7 @@ namespace glsld {
         }
 
         workspace_.ApplyVariants(std::move(shared), std::move(unique));
+        RebuildDocuments();
     }
 
     void LspServer::ApplyIndexConfigs(const nlohmann::json& glsld) {

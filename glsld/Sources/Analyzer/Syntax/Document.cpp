@@ -31,10 +31,12 @@ namespace glsld {
         SourceLocation location(source_file, 0, 0);
 
         for (auto& [name, definition] : pending_macros_) {
-            definition.original_token.location = location;
+            if (definition.original_token.location.source_file() == nullptr) {
+                definition.original_token.location = location;
+            }
 
             auto it = macro_table.find(name);
-            if (it != macro_table.end()) {
+            if (it != macro_table.end() && it->second.original_token.location.source_file() == nullptr) {
                 it->second.original_token.location = location;
             }
         }
@@ -70,17 +72,17 @@ namespace glsld {
         });
     }
 
-    void Document::FinalizeInjectedMacros(const SourceFile* source_file) {
+    void Document::FinalizeInjectedMacros() {
         auto* root = symbols.root_scope();
-        SourceLocation location(source_file, 0, 0);
 
         for (const auto& [name, definition] : pending_macros_) {
+            const auto definition_location = definition.original_token.location;
             auto* node = arena->Construct<PreprocessorNode>(arena.get(), root);
 
             node->directive = "define";
-            node->begin     = location;
-            node->end       = location;
-            node->symbol    = symbols.AddMacroSymbol(node, name, location);
+            node->begin     = definition_location;
+            node->end       = definition_location;
+            node->symbol    = symbols.AddMacroSymbol(node, name, definition_location);
 
             node->tokens.assign_range(definition.replacement_list);
             ast->pprefs.push_back(node);
