@@ -9,7 +9,7 @@ precise precision lowp mediump highp
 inline noinline
 common asm resource
 enum union struct class
-typedef using template this
+typedef using template typename this
 public static extern external interface
 sizeof
 cast

@@ -44,49 +44,10 @@ f64mat3x2 f64mat3x3 f64mat3x4
 f64mat4x2 f64mat4x3 f64mat4x4
 
 floate2m1_t fe2m1vec2 fe2m1vec3 fe2m1vec4
-fe2m1mat2 fe2m1mat3 fe2m1mat4
-fe2m1mat2x2 fe2m1mat2x3 fe2m1mat2x4
-fe2m1mat3x2 fe2m1mat3x3 fe2m1mat3x4
-fe2m1mat4x2 fe2m1mat4x3 fe2m1mat4x4
-
 floate2m3_t fe2m3vec2 fe2m3vec3 fe2m3vec4
-fe2m3mat2 fe2m3mat3 fe2m3mat4
-fe2m3mat2x2 fe2m3mat2x3 fe2m3mat2x4
-fe2m3mat3x2 fe2m3mat3x3 fe2m3mat3x4
-fe2m3mat4x2 fe2m3mat4x3 fe2m3mat4x4
-
 floate3m2_t fe3m2vec2 fe3m2vec3 fe3m2vec4
-fe3m2mat2 fe3m2mat3 fe3m2mat4
-fe3m2mat2x2 fe3m2mat2x3 fe3m2mat2x4
-fe3m2mat3x2 fe3m2mat3x3 fe3m2mat3x4
-fe3m2mat4x2 fe3m2mat4x3 fe3m2mat4x4
-
 floatue8m0_t fue8m0vec2 fue8m0vec3 fue8m0vec4
-fue8m0mat2 fue8m0mat3 fue8m0mat4
-fue8m0mat2x2 fue8m0mat2x3 fue8m0mat2x4
-fue8m0mat3x2 fue8m0mat3x3 fue8m0mat3x4
-fue8m0mat4x2 fue8m0mat4x3 fue8m0mat4x4
-
 floatmxint8_t fmxint8vec2 fmxint8vec3 fmxint8vec4
-fmxint8mat2 fmxint8mat3 fmxint8mat4
-fmxint8mat2x2 fmxint8mat2x3 fmxint8mat2x4
-fmxint8mat3x2 fmxint8mat3x3 fmxint8mat3x4
-fmxint8mat4x2 fmxint8mat4x3 fmxint8mat4x4
-
 floate4m3_t fe4m3vec2 fe4m3vec3 fe4m3vec4
-fe4m3mat2 fe4m3mat3 fe4m3mat4
-fe4m3mat2x2 fe4m3mat2x3 fe4m3mat2x4
-fe4m3mat3x2 fe4m3mat3x3 fe4m3mat3x4
-fe4m3mat4x2 fe4m3mat4x3 fe4m3mat4x4
-
 floate5m2_t fe5m2vec2 fe5m2vec3 fe5m2vec4
-fe5m2mat2 fe5m2mat3 fe5m2mat4
-fe5m2mat2x2 fe5m2mat2x3 fe5m2mat2x4
-fe5m2mat3x2 fe5m2mat3x3 fe5m2mat3x4
-fe5m2mat4x2 fe5m2mat4x3 fe5m2mat4x4
-
 bfloat16_t bf16vec2 bf16vec3 bf16vec4
-bf16mat2 bf16mat3 bf16mat4
-bf16mat2x2 bf16mat2x3 bf16mat2x4
-bf16mat3x2 bf16mat3x3 bf16mat3x4
-bf16mat4x2 bf16mat4x3 bf16mat4x4
