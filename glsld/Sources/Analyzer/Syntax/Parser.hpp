@@ -78,7 +78,14 @@ namespace glsld {
         FunctionDeclarationNode* ParseFunction(TypeSpec type_spec);
         ArenaVector<VariableDeclarationNode*> ParseParameterList();
 
-        TypeSpec ParseTypeSpec();
+        enum class TypeParseContext {
+            kDeclarationPrefix,
+            kTypeId
+        };
+
+        TypeSpec ParseTypeSpec(TypeParseContext context = TypeParseContext::kDeclarationPrefix);
+
+        TypeAliasDeclarationNode* ParseTypeAliasDeclaration();
         FunctionTypeSpec* ParseFunctionTypeSpec();
         ArenaVector<Token> CaptureBalancedTokens(TokenType open, TokenType close);
         QualifierArgumentNode* ParseQualifierArguments(std::span<const Token> tokens);

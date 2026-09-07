@@ -25,6 +25,7 @@ namespace glsld {
             case AstNodeKind::kNullStatement:
             case AstNodeKind::kDeclarationGroup:
             case AstNodeKind::kPreprocessor:
+            case AstNodeKind::kTypeAliasDeclaration:
             case AstNodeKind::kFunctionDeclaration:
             case AstNodeKind::kVariableDeclaration:
             case AstNodeKind::kInterfaceDeclaration:
@@ -73,6 +74,9 @@ namespace glsld {
             break;
         case AstNodeKind::kPreprocessor:
             VisitPreprocessor(static_cast<PreprocessorNode*>(node));
+            break;
+        case AstNodeKind::kTypeAliasDeclaration:
+            VisitTypeAliasDeclaration(static_cast<TypeAliasDeclarationNode*>(node));
             break;
         case AstNodeKind::kQualifierArgument:
             VisitQualifierArgument(static_cast<QualifierArgumentNode*>(node));
@@ -213,6 +217,10 @@ namespace glsld {
         for (auto& statement : node->body) {
             Traverse(statement);
         }
+    }
+
+    void AstVisitor::VisitTypeAliasDeclaration(TypeAliasDeclarationNode* node) {
+        TraverseTypeSpec(node->type_spec);
     }
 
     void AstVisitor::VisitAttribute(AttributeNode* node) {

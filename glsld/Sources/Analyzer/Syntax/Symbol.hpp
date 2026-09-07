@@ -25,6 +25,7 @@ namespace glsld {
         kParameter,
         kPreprocessor,
         kStruct,
+        kTypeAlias,
         kVariable
     };
 
@@ -118,7 +119,7 @@ namespace glsld {
         bool is_array() const;
         bool is_const() const;
 
-        std::string Format(std::string_view type_name = {}) const;
+        std::string Format(bool with_qualifiers = false) const;
     };
 
     struct FunctionTypeInfo {

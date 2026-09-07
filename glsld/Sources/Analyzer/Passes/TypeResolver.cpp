@@ -332,6 +332,13 @@ namespace glsld {
         AstVisitor::VisitTranslationUnit(node);
     }
 
+    void TypeResolver::VisitTypeAliasDeclaration(TypeAliasDeclarationNode* node) {
+        if (node->declared_symbol != nullptr) {
+            document_.bindings.try_emplace(node->declared_symbol->location, node->declared_symbol);
+            ResolveTypeAlias(node->declared_symbol);
+        }
+    }
+
     void TypeResolver::VisitFunctionDeclaration(FunctionDeclarationNode* node) {
         if (node->declared_symbol == nullptr) {
             return;
@@ -382,6 +389,33 @@ namespace glsld {
 
         auto* variable_symbol = node->declared_symbol;
         document_.bindings.try_emplace(variable_symbol->location, variable_symbol);
+
+        if (node->type_spec.typename_token().text == "auto") {
+            variable_symbol->type_info = {};
+            if (node->init == nullptr) {
+                return;
+            }
+
+            Traverse(node->init);
+
+            if (node->init->kind() == AstNodeKind::kInitializerListExpression) { // auto x = { 1, 2, 3 } 有 114514 种解释，推导不出来一点，爬了
+                return;
+            }
+
+            const auto& init_type = node->init->evaluated_type;
+            if (!init_type.is_valid()) {
+                return;
+            }
+
+            auto deduced_type = init_type;
+            const auto& specifiers = node->type_spec.specifiers;
+            deduced_type.qualifiers =
+                document_.arena->CopySpan<Token>(std::span<const Token>(specifiers.data(), specifiers.size() - 1));
+
+            variable_symbol->type_info = std::move(deduced_type);
+            return;
+        }
+
         variable_symbol->type_info = ExtractTypeInfo(node->type_spec, node->located_scope);
 
         if (node->init == nullptr) {
@@ -814,6 +848,44 @@ namespace glsld {
             current_base = index_node->base;
         }
 
+        if (current_base->kind() == AstNodeKind::kVariableExpression) {
+            auto* base = static_cast<VariableExpressionNode*>(current_base);
+            const auto* linked = std::get_if<const SymbolInfo*>(&base->linked_symbols);
+
+            if (linked != nullptr && *linked != nullptr && (*linked)->kind == SymbolKind::kTypeAlias) {
+                const auto* alias = *linked;
+                // 失败也不留下之前的类型
+                node->evaluated_type = {};
+                if (!ResolveTypeAlias(const_cast<SymbolInfo*>(alias))) {
+                    return;
+                }
+
+                auto result = alias->type_info;
+                std::ranges::reverse(dimensions);
+                // 使用处的数组维度在外，别名原有维度在内
+                dimensions.append_range(result.array_sizes);
+
+                if (std::ranges::any_of(dimensions, [](const auto& size) -> bool {
+                    return !size.has_value();
+                })) {
+                    const auto inferred = DeduceArraySizesFromArgs(node);
+                    const auto count    = std::min(dimensions.size(), inferred.size());
+                    for (auto i = 0uz; i != count; ++i) {
+                        if (!dimensions[i].has_value() && inferred[i] >= 0) {
+                            dimensions[i] = static_cast<std::uint64_t>(inferred[i]);
+                        }
+                    }
+                }
+
+                result.array_sizes = document_.arena->CopySpan<std::optional<std::uint64_t>>(dimensions);
+                node->evaluated_type = result;
+                node->callee->evaluated_type = std::move(result);
+
+                document_.bindings[base->original_token.location] = alias;
+                return;
+            }
+        }
+
         // int array[] = int[](...)
         if (is_array_constructor) {
             if (current_base->kind() == AstNodeKind::kVariableExpression) {
@@ -1156,6 +1228,66 @@ namespace glsld {
         }
     }
 
+    bool TypeResolver::ResolveTypeAlias(SymbolInfo* symbol) {
+        if (symbol == nullptr || symbol->kind != SymbolKind::kTypeAlias) {
+            return false;
+        }
+
+        auto it = alias_states_.find(symbol);
+        if (it != alias_states_.end()) {
+            return it->second == AliasResolveState::kResolved;
+        }
+
+        alias_states_[symbol] = AliasResolveState::kResolving;
+        auto* alias_node = static_cast<const TypeAliasDeclarationNode*>(symbol->node);
+        if (alias_node == nullptr) {
+            alias_states_[symbol] = AliasResolveState::kFailed;
+            return false;
+        }
+
+        TraverseTypeSpec(const_cast<TypeSpec&>(alias_node->type_spec));
+
+        auto target_type = ExtractTypeInfo(alias_node->type_spec, symbol->located_scope);
+        if (!target_type.is_valid()) {
+            alias_states_[symbol] = AliasResolveState::kFailed;
+            return false;
+        }
+
+        const auto& spec = alias_node->type_spec;
+
+        if (spec.typename_token().text == "auto" || !spec.layouts.empty()) {
+            symbol->type_info = {};
+            alias_states_[symbol] = AliasResolveState::kFailed;
+            return false;
+        }
+
+        std::vector<Token> filtered_qualifiers;
+        for (const auto& token : target_type.qualifiers) {
+            if (token.text != "const" &&
+                token.text != "volatile" &&
+                token.text != "highp" &&
+                token.text != "mediump" &&
+                token.text != "lowp")
+            {
+                symbol->type_info = {};
+                alias_states_[symbol] = AliasResolveState::kFailed;
+                return false;
+            }
+
+            if (std::ranges::none_of(filtered_qualifiers, [&](const Token& existing) -> bool {
+                return existing.text == token.text;
+            })) {
+                filtered_qualifiers.push_back(token);
+            }
+        }
+
+        target_type.qualifiers = document_.arena->CopySpan<Token>(filtered_qualifiers);
+
+        symbol->type_info     = std::move(target_type);
+        alias_states_[symbol] = AliasResolveState::kResolved;
+        return true;
+    }
+
     void TypeResolver::SeparateType(TypeInfo& type_info, bool keep_vector) {
         if (keep_vector) {
             std::string prefix = GetTypeBitsPrefix(type_info.type_desc);
@@ -1321,14 +1453,16 @@ namespace glsld {
         }
 
         dimensions.push_back(static_cast<std::int64_t>(call_node->args.size()));
-        const auto* first_arg = call_node->args.front();
+        const auto* first_argv = call_node->args.front();
+        if (first_argv == nullptr) {
+            return dimensions;
+        }
 
-        if (first_arg->kind() == AstNodeKind::kCallExpression) {
-            auto* next_call = static_cast<const CallExpressionNode*>(first_arg);
-            if (next_call->callee->kind() == AstNodeKind::kIndexExpression) {
-                auto next_dimensions = DeduceArraySizesFromArgs(next_call);
-                dimensions.append_range(next_dimensions | std::views::as_rvalue);
+        for (const auto& size : first_argv->evaluated_type.array_sizes) {
+            if (!size.has_value()) {
+                break;
             }
+            dimensions.push_back(static_cast<std::int64_t>(*size));
         }
 
         return dimensions;
@@ -1527,22 +1661,20 @@ namespace glsld {
             return {};
         }
 
+        const auto& typename_token = type_spec.typename_token();
         TypeInfo info;
 
-        if (type_spec.typename_token().text == "_Func") {
+        if (typename_token.text == "_Func") { // _Func<ReturnType(Params...)>
             info.is_func_ref = true;
-
             if (type_spec.function_type != nullptr) {
                 const std::array signatures{
                     ExtractFunctionTypeInfo(type_spec.function_type, located_scope)
                 };
 
-                info.function_signatures =
-                    document_.arena->CopySpan<const FunctionTypeInfo*>(signatures);
+                info.function_signatures = document_.arena->CopySpan<const FunctionTypeInfo*>(signatures);
             }
         }
 
-        const auto& typename_token = type_spec.typename_token();
         info.typename_token = typename_token;
 
         std::vector<Token> qualifiers;
@@ -1550,8 +1682,6 @@ namespace glsld {
             // 去掉最后一个，因为最后一个是类型名
             qualifiers.assign_range(type_spec.specifiers | std::views::take(type_spec.specifiers.size() - 1));
         }
-
-        info.qualifiers = document_.arena->CopySpan<Token>(qualifiers);
 
         std::vector<std::optional<std::size_t>> array_sizes;
         for (const auto& size : type_spec.array_sizes) {
@@ -1564,8 +1694,27 @@ namespace glsld {
             array_sizes.push_back(evaluator.EvaluateAs<std::uint64_t>(size));
         }
 
-        info.array_sizes = document_.arena->CopySpan<std::optional<std::size_t>>(array_sizes);
+        auto FinishType = [&]() -> TypeInfo {
+            if (!qualifiers.empty()) { // 去重合并，例如 const const volatile -> const volatile
+                for (const auto& qualifier : info.qualifiers) {
+                    if (std::ranges::none_of(qualifiers, [&](const Token& token) -> bool {
+                        return token.text == qualifier.text;
+                    })) {
+                        qualifiers.push_back(qualifier);
+                    }
+                }
 
+                info.qualifiers = document_.arena->CopySpan<Token>(qualifiers);
+            }
+
+            if (!array_sizes.empty()) { // 合并数组维度
+                array_sizes.append_range(info.array_sizes);
+                info.array_sizes = document_.arena->CopySpan<std::optional<std::uint64_t>>(array_sizes);
+            }
+
+            return info;
+        };
+        
         // spirv_type
         if (!type_spec.spirv_intrinsics.empty() && type_spec.spirv_type != nullptr &&
             type_spec.spirv_type->intrinsic_kind == SpirvIntrinsicKind::kTypeOverride)
@@ -1582,7 +1731,7 @@ namespace glsld {
                     .family = BaseFamily::kUnknown
                 };
 
-                return info;
+                return FinishType();
             }
 
             info.spirv_signature = std::move(*spirv_signature);
@@ -1595,22 +1744,38 @@ namespace glsld {
                 .family = BaseFamily::kOpaque
             };
 
-            return info;
+            return FinishType();
         }
 
-        if (typename_token.type == TokenType::kIdentifier) {
-            auto* type_symbol = located_scope->FindTypeSymbol(typename_token.text);
-            if (type_symbol == nullptr) {
-                return {};
-            }
+        // 查找类型符号
+        const auto* type_symbol = type_spec.named_type_symbol;
+        if (type_symbol == nullptr &&
+            typename_token.type == TokenType::kIdentifier &&
+            located_scope != nullptr)
+        {
+            type_symbol = located_scope->FindTypeSymbol(typename_token.text);
+        }
 
+        if (type_symbol != nullptr) {
             document_.bindings.try_emplace(typename_token.location, type_symbol);
+            if (type_symbol->kind == SymbolKind::kTypeAlias) { // using ThisTy = OtherTy;
+                if (!type_spec.template_args.empty()) { // TODO: template <typename T> using MyType<T> = OtherType<T>;
+                    return {};
+                }
 
-            if (type_symbol->kind == SymbolKind::kOpaqueType) {
+                if (!ResolveTypeAlias(const_cast<SymbolInfo*>(type_symbol))) {
+                    return {};
+                }
+
+                info = type_symbol->type_info;
+                return FinishType();
+            } else if (type_symbol->kind == SymbolKind::kOpaqueType) {
                 info.type_desc = type_symbol->type_info.type_desc;
             } else {
                 info.block_symbol = type_symbol;
             }
+        } else if (typename_token.type == TokenType::kIdentifier) {
+            return {};
         }
 
         std::vector<TemplateArgumentInfo> template_args;
@@ -1625,12 +1790,11 @@ namespace glsld {
             template_args.push_back(std::move(*argument));
         }
 
-        info.template_args = document_.arena->CopySpan<TemplateArgumentInfo>(template_args);
-        if (info.type_desc.family == BaseFamily::kUnknown) {
+        if (!type_spec.template_args.empty())
+            info.template_args = document_.arena->CopySpan<TemplateArgumentInfo>(template_args);
+        if (info.type_desc.family == BaseFamily::kUnknown)
             info.type_desc = ParseTypeDescriptor(typename_token.text);
-        }
-
-        return info;
+        return FinishType();
     }
 
     TypeDescriptor TypeResolver::ParseTypeDescriptor(std::string_view text) {

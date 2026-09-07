@@ -302,6 +302,11 @@ namespace glsld::Providers {
             case SymbolKind::kParameter:    type_index = 7; break;
             case SymbolKind::kVariable:     type_index = 8; break;
 
+            case SymbolKind::kOpaqueType:
+            case SymbolKind::kTypeAlias:
+                type_index = 2;
+                break;
+
             case SymbolKind::kFunctionDecl:
             case SymbolKind::kFunctionImpl:
                 type_index = 12;
@@ -1895,7 +1900,8 @@ namespace glsld::Providers {
 
             const auto* symbol = node->declared_symbol;
             if (symbol != nullptr) {
-                return symbol->type_info.Format(type_name);
+                const auto& display = symbol->type_info;
+                return display.Format();
             }
 
             return type_name;
@@ -2367,6 +2373,19 @@ namespace glsld::Providers {
 
             return expr;
         }
+
+        std::string FormatResolvedHoverType(const TypeInfo& type) {
+            if (!type.is_valid()) {
+                return "<unresolved>";
+            }
+
+            auto result = type.spirv_type.empty() ? type.Format(true) : std::string(type.spirv_type);
+            return result;
+        }
+
+        std::string BuildAliasTypeArrow(const TypeInfo& type, std::string_view alias_name) {
+            return std::format("**Type** -> `{}` alias `{}`", FormatResolvedHoverType(type), alias_name);
+        }
     }
 
     std::string BuildHoverMarkdown(
@@ -2482,7 +2501,7 @@ namespace glsld::Providers {
 
             declare = std::format("// In {}\n{};", host_name, full_spec);
 
-            if (!declare.contains("const") || symbol->kind != SymbolKind::kVariable) {
+            if (symbol->kind != SymbolKind::kVariable || !symbol->type_info.is_const()) {
                 return;
             }
 
@@ -2582,8 +2601,12 @@ namespace glsld::Providers {
                 title = std::format("{} `{}::{}`\n\n{}", scope_prefix, symbol->located_scope->host_symbol()->name, symbol->name, BuildDefinedAt(symbol));
             }
 
-            const auto type_text = BuildTypeText(node, snapshot.get());
-            type_arrow = std::format("**Type** -> `{}`", type_text);
+            const auto* type_symnbol = node->type_spec.named_type_symbol;
+            if (type_symnbol != nullptr && type_symnbol->kind == SymbolKind::kTypeAlias) {
+                type_arrow = BuildAliasTypeArrow(symbol->type_info, node->type_spec.typename_token().text);
+            } else {
+                type_arrow = std::format("**Type** -> `{}`", FormatResolvedHoverType(symbol->type_info));
+            }
 
             const auto full = BuildHoverSpecifierLine(node, snapshot.get());
             BuildDefinedDeclare(symbol, full);
@@ -2630,6 +2653,22 @@ namespace glsld::Providers {
 
             declare += std::format("// {}\n", BuildDefinedAt(symbol));
             declare += format_result.full_spec;
+            break;
+        }
+
+        case SymbolKind::kTypeAlias: {
+            auto* node = static_cast<const TypeAliasDeclarationNode*>(symbol->node);
+            if (node == nullptr) {
+                return {};
+            }
+
+            title = std::format("**Type Alias** `{}`\n\n{}", symbol->name, BuildDefinedAt(symbol));
+            type_arrow = BuildAliasTypeArrow(symbol->type_info, symbol->name);
+
+            // 使用右侧的源码类型名及当前节点的显式限定符
+            // BuildTypeText() 已处理别名链和附加数组维度
+            const auto target = BuildHoverSpecifierLine(node, snapshot.get());
+            declare = std::format("using {} = {};", symbol->name, target);
             break;
         }
 

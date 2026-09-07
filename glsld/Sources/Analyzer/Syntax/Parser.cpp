@@ -11,6 +11,7 @@
 #include <utility>
 
 #include <magic_enum/magic_enum_all.hpp>
+#include "Analyzer/Syntax/MetadataManager.hpp"
 #include "Analyzer/Syntax/Preprocessor.hpp"
 #include "Utils/Utils.hpp"
 
@@ -184,8 +185,10 @@ namespace glsld {
             node = ParsePreprocessor();
             break;
         default:
-            while (current_token().type != TokenType::kEndOfFile && current_token().type != TokenType::kSemicolon &&
-                   current_token().type != TokenType::kOpenBrace || current_token().type == TokenType::kCloseBrace)
+            while (current_token().type != TokenType::kEndOfFile &&
+                   current_token().type != TokenType::kSemicolon &&
+                   current_token().type != TokenType::kOpenBrace ||
+                   current_token().type == TokenType::kCloseBrace)
             {
                 ConsumeToken();
             }
@@ -404,6 +407,10 @@ namespace glsld {
 
     StatementNode* Parser::ParseCodeStatement() {
         // current token is qualifier, type or identifier
+        if (current_token().text == "using") {
+            return ParseTypeAliasDeclaration();
+        }
+
         const auto statement_begin_index = token_index_;
         auto type_spec = ParseTypeSpec();
 
@@ -450,9 +457,10 @@ namespace glsld {
                     callee->begin = type_token.location;
                     callee->end   = GetCurrentTokenEnd();
 
-                    callee->original_token = type_token;
-                    callee->name           = type_token.text;
-                    callee->node_type      = VariableExpressionNode::NodeType::kFunctionCallee;
+                    callee->original_token    = type_token;
+                    callee->name              = type_token.text;
+                    callee->named_type_symbol = type_spec.named_type_symbol;
+                    callee->node_type         = VariableExpressionNode::NodeType::kFunctionCallee;
 
                     ConsumeToken(); // consume '('
 
@@ -641,23 +649,26 @@ namespace glsld {
         return param_list;
     }
 
-    TypeSpec Parser::ParseTypeSpec() {
+    TypeSpec Parser::ParseTypeSpec(TypeParseContext context) {
         // current token is specifier such as: Func("const int" input)
         TypeSpec type_spec(document_.arena.get());
 
         auto ParseTemplateArguments = [this, &type_spec]() -> void {
-            if (MatchAndConsume(TokenType::kLessThan)) { // coopmat<float16_t, gl_ScopeSubgroup, M, N, gl_MatrixUseA>;
-                while (current_token().type != TokenType::kEndOfFile &&
-                       current_token().type != TokenType::kGreaterThan)
-                {
-                    type_spec.template_args.push_back(ParseTemplateArgument());
-                    if (!MatchAndConsume(TokenType::kComma)) {
-                        break;
-                    }
-                }
-
-                MatchAndConsume(TokenType::kGreaterThan);
+            if (!MatchAndConsume(TokenType::kLessThan)) {
+                return;
             }
+
+            // coopmat<float16_t, gl_ScopeSubgroup, M, N, gl_MatrixUseA>;
+            while (current_token().type != TokenType::kEndOfFile &&
+                   current_token().type != TokenType::kGreaterThan)
+            {
+                type_spec.template_args.push_back(ParseTemplateArgument());
+                if (!MatchAndConsume(TokenType::kComma)) {
+                    break;
+                }
+            }
+
+            MatchAndConsume(TokenType::kGreaterThan);
         };
 
         while (true) {
@@ -693,14 +704,18 @@ namespace glsld {
                     break; // 不是类型标识符
                 }
 
-                const auto& next_token = PeekToken();
-                if (next_token.type != TokenType::kIdentifier &&
-                    next_token.type != TokenType::kOpenBracket &&
-                    next_token.type != TokenType::kLessThan)
-                {
-                    break;
+                if (context == TypeParseContext::kDeclarationPrefix) {
+                    // 仅在声明前缀模式下进行后续 Token 前瞻校验以消除歧义
+                    const auto& next_token = PeekToken();
+                    if (next_token.type != TokenType::kIdentifier &&
+                        next_token.type != TokenType::kOpenBracket &&
+                        next_token.type != TokenType::kLessThan)
+                    {
+                        break;
+                    }
                 }
 
+                type_spec.named_type_symbol = symbol_info;
                 type_spec.specifiers.push_back(token);
                 ConsumeToken();
                 ParseTemplateArguments();
@@ -718,6 +733,55 @@ namespace glsld {
         }
 
         return type_spec;
+    }
+
+    TypeAliasDeclarationNode* Parser::ParseTypeAliasDeclaration() {
+        // current token is "using"
+        auto* node  = MakeNode<TypeAliasDeclarationNode>(current_scope());
+        node->begin = current_token().location;
+        ConsumeToken();
+
+        auto Fail = [this, node]() -> TypeAliasDeclarationNode* {
+            while (current_token().type != TokenType::kEndOfFile &&
+                   current_token().type != TokenType::kSemicolon &&
+                   current_token().type != TokenType::kCloseBrace)
+            {
+                ConsumeToken();
+            }
+
+            if (current_token().type == TokenType::kSemicolon) {
+                node->end = GetCurrentTokenEnd();
+                ConsumeToken();
+            } else {
+                node->end = GetPreviousTokenEnd();
+            }
+
+            return node;
+        };
+
+        // current token is type alias identifier
+        if (current_token().type != TokenType::kIdentifier) {
+            return Fail();
+        }
+        node->name = current_token();
+        ConsumeToken();
+
+        if (!MatchAndConsume(TokenType::kEqual)) {
+            return Fail();
+        }
+
+        node->type_spec = ParseTypeSpec(TypeParseContext::kTypeId);
+        if (node->type_spec.empty()) {
+            return Fail();
+        }
+
+        if (!MatchAndConsume(TokenType::kSemicolon)) {
+            return Fail();
+        }
+        node->end = GetPreviousTokenEnd();
+        node->declared_symbol = current_scope()->AddSymbol(node, node->name.text, node->name.location, SymbolKind::kTypeAlias);
+
+        return node;
     }
 
     FunctionTypeSpec* Parser::ParseFunctionTypeSpec() {
@@ -1416,30 +1480,56 @@ namespace glsld {
             return false;
         }
 
-        const auto& type_token  = PeekToken(1);
-        const auto& close_token = PeekToken(2);
+        auto& metadata = MetadataManager::GetInstance();
+        bool has_type  = false;
+        int  offset    = 1;
 
-        if (close_token.type != TokenType::kCloseParen) {
-            return false;
-        }
+        while (true) {
+            const auto& token = PeekToken(offset);
+            if (token.type == TokenType::kCloseParen) {
+                return has_type;
+            }
 
-        switch (type_token.type) {
-        case TokenType::kPrimitive:
-        case TokenType::kBuiltInType:
-            return true;
+            if (token.text == "const"    ||
+                token.text == "volatile" ||
+                token.text == "highp"    ||
+                token.text == "mediump"  ||
+                token.text == "lowp")
+            {
+                ++offset;
+                continue;
+            }
 
-        case TokenType::kIdentifier:
-            return current_scope()->FindVisibleType(type_token.text) != nullptr;
+            // 除限定符外，只能出现一个类型名
+            if (has_type) {
+                return false;
+            }
 
-        default:
-            return false;
+            bool is_type = false;
+
+            if (token.type == TokenType::kBuiltInType) {
+                is_type = true;
+            } else if (token.type == TokenType::kIdentifier) {
+                is_type = current_scope()->FindVisibleType(token.text) != nullptr;
+            } else if (token.type == TokenType::kPrimitive) {
+                // kPrimitive 还包括限定符
+                const auto subtype = metadata.GetLexicalSubtype(token.text);
+                is_type = subtype.has_value() && *subtype == "Primitives.Types" && token.text != "auto";
+            }
+
+            if (!is_type) {
+                return false;
+            }
+
+            has_type = true;
+            ++offset;
         }
     }
 
     ExpressionNode* Parser::ParsePrefixExpression() {
         const auto& token = current_token();
 
-        // GL_NV_explicit_typecast: (type)expr
+        // GL_NV_explicit_typecast: (T)expr
         if (token.type == TokenType::kOpenParen && IsCastExpression()) {
             return ParseCastExpression();
         }
@@ -1494,13 +1584,15 @@ namespace glsld {
         // current token is (
         auto* node  = MakeNode<CastExpressionNode>(current_scope());
         node->begin = current_token().location;
-
         ConsumeToken();
 
-        node->target_type.specifiers.push_back(current_token());
-        ConsumeToken();
-
+        node->target_type = ParseTypeSpec(TypeParseContext::kTypeId);
         MatchAndConsume(TokenType::kCloseParen);
+
+        const auto& type_token = node->target_type.typename_token();
+        if (type_token.type == TokenType::kIdentifier) {
+            node->target_type.named_type_symbol = current_scope()->FindVisibleType(type_token.text);
+        }
 
         node->operand = ParseExpression(Precedence::kTypecast);
 
@@ -1529,6 +1621,10 @@ namespace glsld {
     VariableExpressionNode* Parser::ParseVariableReference() {
         auto* node = MakeNode<VariableExpressionNode>(current_scope());
         const auto& token = current_token();
+
+        if (token.type == TokenType::kIdentifier) {
+            node->named_type_symbol = current_scope()->FindVisibleType(token.text);
+        }
 
         node->begin          = token.location;
         node->original_token = token;

@@ -6,5 +6,8 @@
 	],
 	"glsld.systemIncludeDirectories": [
 		"${workspaceFolder}/Tests"
-	]
+	],
+	"C_Cpp.default.cppStandard": "c++26",
+	"C_Cpp.default.cStandard": "c23",
+	"C_Cpp.default.intelliSenseMode": "windows-msvc-x64"
 }

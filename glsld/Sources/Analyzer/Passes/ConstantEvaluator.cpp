@@ -1221,11 +1221,13 @@ namespace glsld {
         CallExpressionNode* node,
         const TypeInfo& target_type)
     {
-        if (node == nullptr ||
-            !target_type.is_valid() ||
-            target_type.is_array())
-        {
+        if (node == nullptr || !target_type.is_valid()) {
             return std::nullopt;
+        }
+
+        // array constructor
+        if (target_type.is_array()) {
+            return EvaluateArrayElements(node->args, target_type);
         }
 
         // struct constructor
@@ -1644,7 +1646,7 @@ namespace glsld {
         }
 
         auto* var_decl = static_cast<const VariableDeclarationNode*>(symbol->node);
-        if (!var_decl->type_spec.has_keyword("const") || var_decl->init == nullptr) {
+        if (!symbol->type_info.is_const() || var_decl->init == nullptr) {
             is_valid_ = false;
             return;
         }
@@ -2268,37 +2270,25 @@ namespace glsld {
             return;
         }
 
-        // array constructor like float array = float[3](1.0, 2.0, 3.0)
-        if (node->evaluated_type.is_array() &&
-            node->callee->kind() == AstNodeKind::kIndexExpression)
+        if (node->callee->kind() != AstNodeKind::kVariableExpression &&
+            node->callee->kind() != AstNodeKind::kIndexExpression)
         {
-            auto result = EvaluateArrayElements(node->args, node->evaluated_type);
-            if (!result.has_value()) {
-                is_valid_ = false;
-                return;
-            }
-
-            current_value_ = std::move(*result);
-            return;
-        }
-
-        if (node->callee->kind() != AstNodeKind::kVariableExpression) {
             is_valid_ = false;
             return;
         }
 
-        auto* callee = static_cast<VariableExpressionNode*>(node->callee);
-
-        const bool builtin_construct =
-            callee->original_token.type == TokenType::kPrimitive ||
-            callee->original_token.type == TokenType::kBuiltInType;
-
+        auto* callee      = static_cast<VariableExpressionNode*>(node->callee);
         auto* symbol_slot = std::get_if<const SymbolInfo*>(&callee->linked_symbols);
 
-        const bool struct_construct =
-            symbol_slot != nullptr && *symbol_slot != nullptr && (*symbol_slot)->kind == SymbolKind::kStruct;
+        const bool symbol_valid      = symbol_slot != nullptr && *symbol_slot != nullptr;
+        const bool builtin_construct = callee->original_token.type == TokenType::kPrimitive
+                                    || callee->original_token.type == TokenType::kBuiltInType;
 
-        if (builtin_construct || struct_construct) {
+        const bool type_construct    = symbol_valid && ((*symbol_slot)->kind == SymbolKind::kStruct
+                                                    ||  (*symbol_slot)->kind == SymbolKind::kTypeAlias)
+                                    || node->callee->kind() == AstNodeKind::kIndexExpression;
+
+        if (builtin_construct || type_construct) {
             auto converted = EvaluateConstructor(node, node->evaluated_type);
             if (!converted.has_value()) {
                 is_valid_ = false;
@@ -2309,7 +2299,7 @@ namespace glsld {
             return;
         }
 
-        if (symbol_slot == nullptr || *symbol_slot == nullptr) {
+        if (!symbol_valid) {
             is_valid_ = false;
             return;
         }

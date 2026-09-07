@@ -41,6 +41,7 @@ namespace glsld {
         , spirv_intrinsics{ other.spirv_intrinsics }
         , function_type{ other.function_type }
         , spirv_type{ other.spirv_type }
+        , named_type_symbol{ other.named_type_symbol }
     {
     }
 
@@ -213,6 +214,22 @@ namespace glsld {
     PreprocessorNode& PreprocessorNode::operator=(const PreprocessorNode& other) {
         if (this != &other) {
             PreprocessorNode temp(other);
+            std::swap(*this, temp);
+        }
+
+        return *this;
+    }
+
+    TypeAliasDeclarationNode::TypeAliasDeclarationNode(const TypeAliasDeclarationNode& other)
+        : StatementNode(other)
+        , name{ other.name }
+        , type_spec{ other.type_spec }
+        , declared_symbol{ other.declared_symbol }
+    {}
+
+    TypeAliasDeclarationNode& TypeAliasDeclarationNode::operator=(const TypeAliasDeclarationNode& other) {
+        if (this != &other) {
+            TypeAliasDeclarationNode temp(other);
             std::swap(*this, temp);
         }
 
@@ -529,6 +546,7 @@ namespace glsld {
         , node_type{ other.node_type }
         , name{ other.name }
         , linked_symbols{ other.linked_symbols }
+        , named_type_symbol{ other.named_type_symbol }
     {}
 
     VariableExpressionNode& VariableExpressionNode::operator=(const VariableExpressionNode& other) {

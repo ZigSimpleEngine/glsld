@@ -38,6 +38,7 @@ namespace glsld {
 
     private:
         void VisitTranslationUnit(TranslationUnitNode* node) override;
+        void VisitTypeAliasDeclaration(TypeAliasDeclarationNode* node) override;
         void VisitFunctionDeclaration(FunctionDeclarationNode* node) override;
         void VisitVariableDeclaration(VariableDeclarationNode* node) override;
         void VisitInterfaceDeclaration(InterfaceDeclarationNode* node) override;
@@ -53,20 +54,34 @@ namespace glsld {
         void VisitRawExpression(RawExpressionNode* node) override;
         void VisitMemberAccessExpression(MemberAccessExpressionNode* node) override;
 
+        enum class AliasResolveState {
+            kResolving,
+            kResolved,
+            kFailed
+        };
+
+        bool ResolveTypeAlias(SymbolInfo* symbol);
         void SeparateType(TypeInfo& type_info, bool keep_vector);
         TypeInfo GetCanonicalTypeInfo(const TypeDescriptor& type_desc);
         TypeInfo SplitCanonicalTypeInfo(const TypeInfo& base_type);
+
         std::optional<TemplateArgumentInfo> ExtractTemplateArgument(ExpressionNode* node, const Scope* located_scope);
         std::vector<std::int64_t> DeduceArraySizesFromArgs(const CallExpressionNode* call_node);
+
         const FunctionTypeInfo* BuildFunctionType(const SymbolInfo* symbol);
         std::span<const FunctionTypeInfo* const> BuildFunctionTypes(SymbolListView symbols);
         const FunctionTypeInfo* ExtractFunctionTypeInfo(const FunctionTypeSpec* function_type, const Scope* located_scope);
+
         std::expected<SpirvTypeSignature, std::string> BuildSpirvTypeSignature(const SpirvIntrinsicNode* node);
+
         TypeInfo ExtractTypeInfo(const TypeSpec& type_spec, const Scope* located_scope);
         TypeDescriptor ParseTypeDescriptor(std::string_view text);
+
         TypeInfo SniffLiteralType(const Token& token);
         TypeInfo ResolveSwizzleType(const TypeInfo& base_type, std::string_view swizzle);
+
         SymbolReference ResolveOverload(SymbolListView candidates, std::span<const TypeInfo> call_arg_types);
+
         TypeInfo ResolveBinaryOperationType(const TypeInfo& left_type, const TypeInfo& right_type, TokenType op);
         TypeInfo ResolveArithmeticPromotion(const TypeInfo& left_type, const TypeInfo& right_type, TokenType op);
 
@@ -74,6 +89,9 @@ namespace glsld {
 
         using TypeDescriptorCache = ankerl::unordered_dense::map<TypeDescriptor, TypeInfo, TypeDescriptorHash>;
         TypeDescriptorCache type_desc_cache_;
+
+        using AliasState = ankerl::unordered_dense::map<const SymbolInfo*, AliasResolveState>;
+        AliasState alias_states_;
 
         bool is_signature_pass_{ true };
     };

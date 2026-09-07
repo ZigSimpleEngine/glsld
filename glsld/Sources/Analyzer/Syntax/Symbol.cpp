@@ -30,6 +30,7 @@ namespace glsld {
         case SymbolKind::kMacro:
             return 14; // Constant
         case SymbolKind::kStruct:
+        case SymbolKind::kTypeAlias:
         case SymbolKind::kOpaqueType:
             return 23; // Struct
         default:
@@ -203,15 +204,22 @@ namespace glsld {
         }
     }
 
-    std::string TypeInfo::Format(std::string_view type_name) const {
-        std::string result(type_name.empty() ? typename_token.text : type_name);
-
+    std::string TypeInfo::Format(bool with_qualifiers) const {
+        std::string result;
         if (is_func_ref) {
             result = "_Func";
 
             if (function_signatures.size() == 1) {
                 result += std::format("<{}>", FormatFunctionTypeInfo(function_signatures.front()));
             }
+        } else {
+            if (with_qualifiers) {
+                for (const auto& qualifier : qualifiers) {
+                    result += std::format("{} ", qualifier.text);
+                }
+            }
+
+            result += typename_token.text;
         }
 
         if (!template_args.empty()) {
@@ -330,7 +338,8 @@ namespace glsld {
             if (symbol != nullptr &&
                 (symbol->kind == SymbolKind::kStruct ||
                  symbol->kind == SymbolKind::kInterface ||
-                 symbol->kind == SymbolKind::kOpaqueType))
+                 symbol->kind == SymbolKind::kOpaqueType ||
+                 symbol->kind == SymbolKind::kTypeAlias))
             {
                 return symbol;
             }
@@ -348,7 +357,8 @@ namespace glsld {
                 if (symbol != nullptr &&
                     (symbol->kind == SymbolKind::kStruct ||
                      symbol->kind == SymbolKind::kInterface ||
-                     symbol->kind == SymbolKind::kOpaqueType))
+                     symbol->kind == SymbolKind::kOpaqueType ||
+                     symbol->kind == SymbolKind::kTypeAlias))
                 {
                     return symbol;
                 }
@@ -456,11 +466,12 @@ namespace glsld {
 
         if (inserted_symbol->kind == SymbolKind::kStruct ||
             inserted_symbol->kind == SymbolKind::kInterface ||
-            inserted_symbol->kind == SymbolKind::kOpaqueType)
+            inserted_symbol->kind == SymbolKind::kOpaqueType ||
+            inserted_symbol->kind == SymbolKind::kTypeAlias)
         {
-            visible_types_.try_emplace(inserted_symbol->name, inserted_symbol);
+            visible_types_.insert_or_assign(inserted_symbol->name, inserted_symbol);
             if (!base_name.empty()) {
-                visible_types_.try_emplace(std::move(base_name), inserted_symbol);
+                visible_types_.insert_or_assign(std::move(base_name), inserted_symbol);
             }
         }
 

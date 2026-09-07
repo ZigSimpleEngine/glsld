@@ -23,6 +23,7 @@ namespace glsld {
         ArenaVector<SpirvIntrinsicNode*>  spirv_intrinsics{ ArenaAllocator<SpirvIntrinsicNode*>(arena) };
         FunctionTypeSpec*                 function_type{ nullptr };
         const SpirvIntrinsicNode*         spirv_type{ nullptr };
+        const SymbolInfo*                 named_type_symbol{ nullptr };
 
         TypeSpec(Arena* arena);
         TypeSpec(const TypeSpec& other);
@@ -55,6 +56,7 @@ namespace glsld {
         kTranslationUnit,
         kDeclarationGroup,
         kPreprocessor,
+        kTypeAliasDeclaration,
         kAttribute,
         kQualifierArgument,
         kLayoutQualifier,
@@ -242,6 +244,23 @@ namespace glsld {
 
         PreprocessorNode& operator=(const PreprocessorNode& other);
         PreprocessorNode& operator=(PreprocessorNode&&) noexcept = default;
+
+        AstNodeKind kind() const override;
+        AstNode* Clone() const override;
+    };
+
+    struct TypeAliasDeclarationNode final : public StatementNode {
+        Token       name;
+        TypeSpec    type_spec{ arena };
+        SymbolInfo* declared_symbol{ nullptr };
+
+        using StatementNode::StatementNode;
+        TypeAliasDeclarationNode(const TypeAliasDeclarationNode& other);
+        TypeAliasDeclarationNode(TypeAliasDeclarationNode&&) noexcept = default;
+        ~TypeAliasDeclarationNode() override = default;
+
+        TypeAliasDeclarationNode& operator=(const TypeAliasDeclarationNode& other);
+        TypeAliasDeclarationNode& operator=(TypeAliasDeclarationNode&&) noexcept = default;
 
         AstNodeKind kind() const override;
         AstNode* Clone() const override;
@@ -580,6 +599,7 @@ namespace glsld {
         NodeType            node_type;
         std::string_view    name;
         SymbolReferenceView linked_symbols{ std::monostate{} };
+        const SymbolInfo*   named_type_symbol{ nullptr };
 
         using ExpressionNode::ExpressionNode;
         VariableExpressionNode(const VariableExpressionNode& other);
