@@ -220,36 +220,6 @@ namespace glsld {
         return *this;
     }
 
-    TypeAliasDeclarationNode::TypeAliasDeclarationNode(const TypeAliasDeclarationNode& other)
-        : StatementNode(other)
-        , name{ other.name }
-        , type_spec{ other.type_spec }
-        , declared_symbol{ other.declared_symbol }
-    {}
-
-    TypeAliasDeclarationNode& TypeAliasDeclarationNode::operator=(const TypeAliasDeclarationNode& other) {
-        if (this != &other) {
-            TypeAliasDeclarationNode temp(other);
-            std::swap(*this, temp);
-        }
-
-        return *this;
-    }
-
-    DeclarationNode::DeclarationNode(const DeclarationNode& other)
-        : StatementNode(other)
-        , declared_symbol{ other.declared_symbol }
-    {}
-
-    DeclarationNode& DeclarationNode::operator=(const DeclarationNode& other) {
-        if (this != &other) {
-            AstNode::operator=(other);
-            declared_symbol = other.declared_symbol;
-        }
-
-        return *this;
-    }
-
     CompoundStatementNode::CompoundStatementNode(const CompoundStatementNode& other)
         : StatementNode(other)
         , children{ CloneVector<StatementNode>(*arena, other.children) }
@@ -581,6 +551,36 @@ namespace glsld {
     MemberAccessExpressionNode& MemberAccessExpressionNode::operator=(const MemberAccessExpressionNode& other) {
         if (this != &other) {
             MemberAccessExpressionNode temp(other);
+            std::swap(*this, temp);
+        }
+
+        return *this;
+    }
+
+    DeclarationNode::DeclarationNode(const DeclarationNode& other)
+        : StatementNode(other)
+        , declared_symbol{ other.declared_symbol }
+    {}
+
+    DeclarationNode& DeclarationNode::operator=(const DeclarationNode& other) {
+        if (this != &other) {
+            AstNode::operator=(other);
+            declared_symbol = other.declared_symbol;
+        }
+
+        return *this;
+    }
+
+    TypeAliasDeclarationNode::TypeAliasDeclarationNode(const TypeAliasDeclarationNode& other)
+        : DeclarationNode(other)
+        , name{ other.name }
+        , type_spec{ other.type_spec }
+        , declared_symbol{ other.declared_symbol }
+    {}
+
+    TypeAliasDeclarationNode& TypeAliasDeclarationNode::operator=(const TypeAliasDeclarationNode& other) {
+        if (this != &other) {
+            TypeAliasDeclarationNode temp(other);
             std::swap(*this, temp);
         }
 

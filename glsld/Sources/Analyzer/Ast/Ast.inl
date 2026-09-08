@@ -60,14 +60,6 @@ namespace glsld {
         return DefaultClone();
     }
 
-    inline AstNodeKind TypeAliasDeclarationNode::kind() const {
-        return AstNodeKind::kTypeAliasDeclaration;
-    }
-
-    inline AstNode* TypeAliasDeclarationNode::Clone() const {
-        return DefaultClone();
-    }
-
     inline AstNodeKind CompoundStatementNode::kind() const {
         return AstNodeKind::kCompoundStatement;
     }
@@ -249,6 +241,14 @@ namespace glsld {
     }
 
     inline AstNode* MemberAccessExpressionNode::Clone() const {
+        return DefaultClone();
+    }
+
+    inline AstNodeKind TypeAliasDeclarationNode::kind() const {
+        return AstNodeKind::kTypeAliasDeclaration;
+    }
+
+    inline AstNode* TypeAliasDeclarationNode::Clone() const {
         return DefaultClone();
     }
 

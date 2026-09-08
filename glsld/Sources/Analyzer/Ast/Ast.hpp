@@ -56,13 +56,14 @@ namespace glsld {
         kTranslationUnit,
         kDeclarationGroup,
         kPreprocessor,
-        kTypeAliasDeclaration,
         kAttribute,
         kQualifierArgument,
         kLayoutQualifier,
         kSpirvIntrinsic,
 
         // Declarations
+        kTypeAliasDeclaration,
+        kNamespaceDeclaration,
         kFunctionDeclaration,
         kVariableDeclaration,
         kInterfaceDeclaration,
@@ -247,35 +248,6 @@ namespace glsld {
 
         AstNodeKind kind() const override;
         AstNode* Clone() const override;
-    };
-
-    struct TypeAliasDeclarationNode final : public StatementNode {
-        Token       name;
-        TypeSpec    type_spec{ arena };
-        SymbolInfo* declared_symbol{ nullptr };
-
-        using StatementNode::StatementNode;
-        TypeAliasDeclarationNode(const TypeAliasDeclarationNode& other);
-        TypeAliasDeclarationNode(TypeAliasDeclarationNode&&) noexcept = default;
-        ~TypeAliasDeclarationNode() override = default;
-
-        TypeAliasDeclarationNode& operator=(const TypeAliasDeclarationNode& other);
-        TypeAliasDeclarationNode& operator=(TypeAliasDeclarationNode&&) noexcept = default;
-
-        AstNodeKind kind() const override;
-        AstNode* Clone() const override;
-    };
-
-    struct DeclarationNode : public StatementNode {
-        SymbolInfo* declared_symbol{ nullptr };
-
-        using StatementNode::StatementNode;
-        DeclarationNode(const DeclarationNode& other);
-        DeclarationNode(DeclarationNode&&) noexcept = default;
-        ~DeclarationNode() override = default;
-
-        DeclarationNode& operator=(const DeclarationNode& other);
-        DeclarationNode& operator=(DeclarationNode&&) noexcept = default;
     };
 
     struct CompoundStatementNode final : public StatementNode {
@@ -639,6 +611,35 @@ namespace glsld {
 
         MemberAccessExpressionNode& operator=(const MemberAccessExpressionNode& other);
         MemberAccessExpressionNode& operator=(MemberAccessExpressionNode&&) noexcept = default;
+
+        AstNodeKind kind() const override;
+        AstNode* Clone() const override;
+    };
+
+    struct DeclarationNode : public StatementNode {
+        SymbolInfo* declared_symbol{ nullptr };
+
+        using StatementNode::StatementNode;
+        DeclarationNode(const DeclarationNode& other);
+        DeclarationNode(DeclarationNode&&) noexcept = default;
+        ~DeclarationNode() override = default;
+
+        DeclarationNode& operator=(const DeclarationNode& other);
+        DeclarationNode& operator=(DeclarationNode&&) noexcept = default;
+    };
+
+    struct TypeAliasDeclarationNode final : public DeclarationNode {
+        Token       name;
+        TypeSpec    type_spec{ arena };
+        SymbolInfo* declared_symbol{ nullptr };
+
+        using DeclarationNode::DeclarationNode;
+        TypeAliasDeclarationNode(const TypeAliasDeclarationNode& other);
+        TypeAliasDeclarationNode(TypeAliasDeclarationNode&&) noexcept = default;
+        ~TypeAliasDeclarationNode() override = default;
+
+        TypeAliasDeclarationNode& operator=(const TypeAliasDeclarationNode& other);
+        TypeAliasDeclarationNode& operator=(TypeAliasDeclarationNode&&) noexcept = default;
 
         AstNodeKind kind() const override;
         AstNode* Clone() const override;

@@ -10,6 +10,7 @@ namespace glsld {
     namespace {
         bool IsStatementKind(AstNodeKind kind) {
             switch (kind) {
+            case AstNodeKind::kPreprocessor:
             case AstNodeKind::kCompoundStatement:
             case AstNodeKind::kIfStatement:
             case AstNodeKind::kForStatement:
@@ -24,7 +25,6 @@ namespace glsld {
             case AstNodeKind::kExpressionStatement:
             case AstNodeKind::kNullStatement:
             case AstNodeKind::kDeclarationGroup:
-            case AstNodeKind::kPreprocessor:
             case AstNodeKind::kTypeAliasDeclaration:
             case AstNodeKind::kFunctionDeclaration:
             case AstNodeKind::kVariableDeclaration:
@@ -69,14 +69,8 @@ namespace glsld {
         case AstNodeKind::kTranslationUnit:
             VisitTranslationUnit(static_cast<TranslationUnitNode*>(node));
             break;
-        case AstNodeKind::kDeclarationGroup:
-            VisitDeclarationGroup(static_cast<DeclarationGroupNode*>(node));
-            break;
         case AstNodeKind::kPreprocessor:
             VisitPreprocessor(static_cast<PreprocessorNode*>(node));
-            break;
-        case AstNodeKind::kTypeAliasDeclaration:
-            VisitTypeAliasDeclaration(static_cast<TypeAliasDeclarationNode*>(node));
             break;
         case AstNodeKind::kQualifierArgument:
             VisitQualifierArgument(static_cast<QualifierArgumentNode*>(node));
@@ -86,6 +80,12 @@ namespace glsld {
             break;
         case AstNodeKind::kSpirvIntrinsic:
             VisitSpirvIntrinsic(static_cast<SpirvIntrinsicNode*>(node));
+            break;
+        case AstNodeKind::kDeclarationGroup:
+            VisitDeclarationGroup(static_cast<DeclarationGroupNode*>(node));
+            break;
+        case AstNodeKind::kTypeAliasDeclaration:
+            VisitTypeAliasDeclaration(static_cast<TypeAliasDeclarationNode*>(node));
             break;
         case AstNodeKind::kFunctionDeclaration:
             VisitFunctionDeclaration(static_cast<FunctionDeclarationNode*>(node));
@@ -205,22 +205,10 @@ namespace glsld {
         }
     }
 
-    void AstVisitor::VisitDeclarationGroup(DeclarationGroupNode* node) {
-        TraverseTypeSpec(node->type_spec);
-
-        for (auto& declaration : node->declarations) {
-            Traverse(declaration);
-        }
-    }
-
     void AstVisitor::VisitPreprocessor(PreprocessorNode* node) {
         for (auto& statement : node->body) {
             Traverse(statement);
         }
-    }
-
-    void AstVisitor::VisitTypeAliasDeclaration(TypeAliasDeclarationNode* node) {
-        TraverseTypeSpec(node->type_spec);
     }
 
     void AstVisitor::VisitAttribute(AttributeNode* node) {
@@ -247,6 +235,18 @@ namespace glsld {
         for (auto& param : node->params) {
             Traverse(param);
         }
+    }
+
+    void AstVisitor::VisitDeclarationGroup(DeclarationGroupNode* node) {
+        TraverseTypeSpec(node->type_spec);
+
+        for (auto& declaration : node->declarations) {
+            Traverse(declaration);
+        }
+    }
+
+    void AstVisitor::VisitTypeAliasDeclaration(TypeAliasDeclarationNode* node) {
+        TraverseTypeSpec(node->type_spec);
     }
 
     void AstVisitor::VisitFunctionDeclaration(FunctionDeclarationNode* node) {

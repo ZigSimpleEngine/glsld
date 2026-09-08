@@ -19,15 +19,6 @@ namespace glsld {
         --indent_level_;
     }
 
-    void AstDumper::VisitDeclarationGroup(DeclarationGroupNode* node) {
-        PrintIndent();
-        std::println("DeclarationGroup {}", FormatRange(node));
-
-        ++indent_level_;
-        Base::VisitDeclarationGroup(node);
-        --indent_level_;
-    }
-
     void AstDumper::VisitPreprocessor(PreprocessorNode* node) {
         PrintIndent();
         std::println("Preprocessor #{} (Tokens: {}) {}", node->directive, node->tokens.size(), FormatRange(node));
@@ -79,6 +70,24 @@ namespace glsld {
 
         ++indent_level_;
         Base::VisitSpirvIntrinsic(node);
+        --indent_level_;
+    }
+
+    void AstDumper::VisitDeclarationGroup(DeclarationGroupNode* node) {
+        PrintIndent();
+        std::println("DeclarationGroup {}", FormatRange(node));
+
+        ++indent_level_;
+        Base::VisitDeclarationGroup(node);
+        --indent_level_;
+    }
+
+    void AstDumper::VisitTypeAliasDeclaration(TypeAliasDeclarationNode* node) {
+        PrintIndent();
+        std::println("TypeAliasDeclaration '{}' Type: {} {}", node->name.text, TypeToString(node->type_spec), FormatRange(node));
+
+        ++indent_level_;
+        Base::VisitTypeAliasDeclaration(node);
         --indent_level_;
     }
 

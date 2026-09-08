@@ -19,13 +19,13 @@ namespace glsld {
         void TraverseTypeSpec(TypeSpec& type_spec);
 
         virtual void VisitTranslationUnit(TranslationUnitNode* node);
-        virtual void VisitDeclarationGroup(DeclarationGroupNode* node);
         virtual void VisitPreprocessor(PreprocessorNode* node);
-        virtual void VisitTypeAliasDeclaration(TypeAliasDeclarationNode* node);
         virtual void VisitAttribute(AttributeNode* node);
         virtual void VisitQualifierArgument(QualifierArgumentNode* node);
         virtual void VisitLayoutQualifier(LayoutQualifierNode* node);
         virtual void VisitSpirvIntrinsic(SpirvIntrinsicNode* node);
+        virtual void VisitDeclarationGroup(DeclarationGroupNode* node);
+        virtual void VisitTypeAliasDeclaration(TypeAliasDeclarationNode* node);
         virtual void VisitFunctionDeclaration(FunctionDeclarationNode* node);
         virtual void VisitVariableDeclaration(VariableDeclarationNode* node);
         virtual void VisitInterfaceDeclaration(InterfaceDeclarationNode* node);

@@ -12,12 +12,13 @@ namespace glsld {
 
     private:
         void VisitTranslationUnit(TranslationUnitNode* node) override;
-        void VisitDeclarationGroup(DeclarationGroupNode* node) override;
         void VisitPreprocessor(PreprocessorNode* node) override;
         void VisitAttribute(AttributeNode* node) override;
         void VisitQualifierArgument(QualifierArgumentNode* node) override;
         void VisitLayoutQualifier(LayoutQualifierNode* node) override;
         void VisitSpirvIntrinsic(SpirvIntrinsicNode* node) override;
+        void VisitDeclarationGroup(DeclarationGroupNode* node) override;
+        void VisitTypeAliasDeclaration(TypeAliasDeclarationNode* node) override;
         void VisitFunctionDeclaration(FunctionDeclarationNode* node) override;
         void VisitVariableDeclaration(VariableDeclarationNode* node) override;
         void VisitInterfaceDeclaration(InterfaceDeclarationNode* node) override;
