@@ -10,13 +10,13 @@
 
 #include <nlohmann/json.hpp>
 
-#include "Analyzer/Syntax/Symbol.hpp"
-#include "Analyzer/Syntax/Document.hpp"
-#include "Base/FileSystem/Source.hpp"
-#include "Base/Unicode.hpp"
-#include "Server/ExternalEngine/Formatter.hpp"
-#include "Server/Index/GlobalIndex.hpp"
-#include "Server/Context.hpp"
+#include <Analyzer/Syntax/Symbol.hpp>
+#include <Analyzer/Syntax/Document.hpp>
+#include <Base/FileSystem/Source.hpp>
+#include <Base/Unicode.hpp>
+#include <Server/ExternalEngine/Formatter.hpp>
+#include <Server/Index/GlobalIndex.hpp>
+#include <Server/Context.hpp>
 
 namespace glsld::Providers {
     nlohmann::json GetDocumentSymbols(

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <vector>
-#include "Analyzer/Ast/AstVisitor.hpp"
-#include "Analyzer/Syntax/Document.hpp"
+#include <Analyzer/Ast/AstVisitor.hpp>
+#include <Analyzer/Syntax/Document.hpp>
 
 namespace glsld {
     class InlayHintCollector final : public AstVisitor {

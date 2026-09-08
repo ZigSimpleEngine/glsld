@@ -8,11 +8,11 @@
 #include <string>
 #include <vector>
 
-#include "Analyzer/Syntax/Document.hpp"
-#include "Analyzer/Syntax/Token.hpp"
-#include "Base/FileSystem/IncludeLoader.hpp"
-#include "Base/FileSystem/Source.hpp"
-#include "Base/Hash.hpp"
+#include <Analyzer/Syntax/Document.hpp>
+#include <Analyzer/Syntax/Token.hpp>
+#include <Base/FileSystem/IncludeLoader.hpp>
+#include <Base/FileSystem/Source.hpp>
+#include <Base/Hash.hpp>
 
 namespace glsld {
     struct ConditionalFrame {

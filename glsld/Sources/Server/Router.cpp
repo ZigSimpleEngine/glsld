@@ -6,7 +6,7 @@
 #include <string>
 #include <utility>
 
-#include "Base/Logger.hpp"
+#include <Base/Logger.hpp>
 
 namespace glsld {
     namespace {

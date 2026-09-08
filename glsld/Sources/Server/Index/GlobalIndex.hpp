@@ -8,10 +8,10 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include "Analyzer/Syntax/Document.hpp"
-#include "Analyzer/Syntax/Symbol.hpp"
-#include "Analyzer/Syntax/Token.hpp"
-#include "Base/Hash.hpp"
+#include <Analyzer/Syntax/Document.hpp>
+#include <Analyzer/Syntax/Symbol.hpp>
+#include <Analyzer/Syntax/Token.hpp>
+#include <Base/Hash.hpp>
 
 namespace glsld {
     struct Contribution {

@@ -10,14 +10,14 @@
 #include <stdexcept>
 #include <system_error>
 
-#include "Analyzer/Passes/MacroBinder.hpp"
-#include "Analyzer/Passes/SymbolLinker.hpp"
-#include "Analyzer/Passes/TypeResolver.hpp"
-#include "Analyzer/Syntax/Lexer.hpp"
-#include "Analyzer/Syntax/Parser.hpp"
-#include "Base/FileSystem/Source.hpp"
-#include "Base/Unicode.hpp"
-#include "Utils/Utils.hpp"
+#include <Analyzer/Passes/MacroBinder.hpp>
+#include <Analyzer/Passes/SymbolLinker.hpp>
+#include <Analyzer/Passes/TypeResolver.hpp>
+#include <Analyzer/Syntax/Lexer.hpp>
+#include <Analyzer/Syntax/Parser.hpp>
+#include <Base/FileSystem/Source.hpp>
+#include <Base/Unicode.hpp>
+#include <Utils/Utils.hpp>
 
 namespace glsld {
     namespace {

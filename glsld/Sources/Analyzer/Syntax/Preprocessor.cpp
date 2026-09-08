@@ -6,9 +6,9 @@
 #include <ranges>
 #include <utility>
 
-#include "Analyzer/Syntax/Lexer.hpp"
-#include "Base/Hash.hpp"
-#include "Utils/Utils.hpp"
+#include <Analyzer/Syntax/Lexer.hpp>
+#include <Base/Hash.hpp>
+#include <Utils/Utils.hpp>
 
 namespace glsld {
     namespace {

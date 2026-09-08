@@ -16,14 +16,14 @@
 #include <ankerl/unordered_dense.h>
 #include <nlohmann/json.hpp>
 
-#include "Analyzer/Syntax/Document.hpp"
-#include "Base/Hash.hpp"
-#include "Base/ThreadPool.hpp"
-#include "Server/ExternalEngine/DiagnosticEngine.hpp"
-#include "Server/ExternalEngine/Formatter.hpp"
-#include "Server/Context.hpp"
-#include "Server/Router.hpp"
-#include "Server/Workspace.hpp"
+#include <Analyzer/Syntax/Document.hpp>
+#include <Base/Hash.hpp>
+#include <Base/ThreadPool.hpp>
+#include <Server/ExternalEngine/DiagnosticEngine.hpp>
+#include <Server/ExternalEngine/Formatter.hpp>
+#include <Server/Context.hpp>
+#include <Server/Router.hpp>
+#include <Server/Workspace.hpp>
 
 namespace glsld {
     struct LspTask {

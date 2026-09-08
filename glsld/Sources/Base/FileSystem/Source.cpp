@@ -8,8 +8,8 @@
 #include <span>
 #include <utility>
 
-#include "Base/Unicode.hpp"
-#include "Utils/Utils.hpp"
+#include <Base/Unicode.hpp>
+#include <Utils/Utils.hpp>
 
 namespace glsld {
     SourceFile::SourceFile(std::string_view filename, std::string_view uri, SourceKind kind)

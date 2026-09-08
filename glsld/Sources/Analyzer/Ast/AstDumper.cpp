@@ -7,7 +7,7 @@
 #include <print>
 
 #include <magic_enum/magic_enum_all.hpp>
-#include "Utils/Utils.hpp"
+#include <Utils/Utils.hpp>
 
 namespace glsld {
     void AstDumper::VisitTranslationUnit(TranslationUnitNode* node) {

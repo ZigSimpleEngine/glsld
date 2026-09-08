@@ -2,9 +2,9 @@
 
 #include <atomic>
 #include <memory>
-#include "Analyzer/Ast/Ast.hpp"
-#include "Analyzer/Syntax/Document.hpp"
-#include "Analyzer/Syntax/Symbol.hpp"
+#include <Analyzer/Ast/Ast.hpp>
+#include <Analyzer/Syntax/Document.hpp>
+#include <Analyzer/Syntax/Symbol.hpp>
 
 namespace glsld {
     class AstVisitor {

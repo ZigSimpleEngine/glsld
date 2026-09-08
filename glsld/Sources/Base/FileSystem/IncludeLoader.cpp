@@ -6,8 +6,8 @@
 #include <system_error>
 #include <utility>
 
-#include "Analyzer/Syntax/Lexer.hpp"
-#include "Utils/Utils.hpp"
+#include <Analyzer/Syntax/Lexer.hpp>
+#include <Utils/Utils.hpp>
 
 namespace glsld {
     IncludeLoader::IncludeLoader(SourceTable& source_table, ThreadPool& thread_pool)

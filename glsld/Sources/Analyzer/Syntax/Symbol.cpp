@@ -7,10 +7,11 @@
 #include <print>
 #include <ranges>
 #include <type_traits>
+
 #include <magic_enum/magic_enum_all.hpp>
 
-#include "Base/Hash.hpp"
-#include "Utils/Utils.hpp"
+#include <Base/Hash.hpp>
+#include <Utils/Utils.hpp>
 
 namespace glsld {
     int ConvertSymbolKind(SymbolKind kind) {

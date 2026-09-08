@@ -15,15 +15,15 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include "Analyzer/Ast/Ast.hpp"
-#include "Analyzer/Passes/ConstantEvaluator.hpp"
-#include "Analyzer/Passes/InlayHintCollector.hpp"
-#include "Analyzer/Passes/NodeLocator.hpp"
-#include "Analyzer/Passes/TypeResolver.hpp"
-#include "Analyzer/Syntax/MetadataManager.hpp"
-#include "Analyzer/Syntax/Token.hpp"
-#include "Base/Hash.hpp"
-#include "Utils/Utils.hpp"
+#include <Analyzer/Ast/Ast.hpp>
+#include <Analyzer/Passes/ConstantEvaluator.hpp>
+#include <Analyzer/Passes/InlayHintCollector.hpp>
+#include <Analyzer/Passes/NodeLocator.hpp>
+#include <Analyzer/Passes/TypeResolver.hpp>
+#include <Analyzer/Syntax/MetadataManager.hpp>
+#include <Analyzer/Syntax/Token.hpp>
+#include <Base/Hash.hpp>
+#include <Utils/Utils.hpp>
 
 namespace glsld::Providers {
     namespace {

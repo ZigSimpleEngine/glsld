@@ -8,9 +8,9 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include "Analyzer/Ast/AstVisitor.hpp"
-#include "Analyzer/Syntax/Document.hpp"
-#include "Analyzer/Syntax/Symbol.hpp"
+#include <Analyzer/Ast/AstVisitor.hpp>
+#include <Analyzer/Syntax/Document.hpp>
+#include <Analyzer/Syntax/Symbol.hpp>
 
 namespace glsld {
     enum class MatchGrade {

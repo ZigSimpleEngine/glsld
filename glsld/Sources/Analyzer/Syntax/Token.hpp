@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string_view>
-#include "Base/FileSystem/Source.hpp"
+#include <Base/FileSystem/Source.hpp>
 
 namespace glsld {
     enum class TokenType {

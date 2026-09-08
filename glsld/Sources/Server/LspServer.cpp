@@ -15,12 +15,12 @@
 #include <utility>
 #include <vector>
 
-#include "Base/FileSystem/Source.hpp"
-#include "Base/Logger.hpp"
-#include "Base/Unicode.hpp"
-#include "Server/FunctionProviders.hpp"
-#include "Server/JsonResponse.hpp"
-#include "Utils/Utils.hpp"
+#include <Base/FileSystem/Source.hpp>
+#include <Base/Logger.hpp>
+#include <Base/Unicode.hpp>
+#include <Server/FunctionProviders.hpp>
+#include <Server/JsonResponse.hpp>
+#include <Utils/Utils.hpp>
 
 namespace glsld {
     namespace {

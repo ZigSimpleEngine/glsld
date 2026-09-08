@@ -11,11 +11,11 @@
 #include <utility>
 #include <variant>
 
-#include "Analyzer/Ast/Ast.hpp"
-#include "Analyzer/Passes/ConstantEvaluator.hpp"
-#include "Analyzer/Syntax/MetadataManager.hpp"
-#include "Base/Hash.hpp"
-#include "Utils/Utils.hpp"
+#include <Analyzer/Ast/Ast.hpp>
+#include <Analyzer/Passes/ConstantEvaluator.hpp>
+#include <Analyzer/Syntax/MetadataManager.hpp>
+#include <Base/Hash.hpp>
+#include <Utils/Utils.hpp>
 
 namespace glsld {
     namespace {

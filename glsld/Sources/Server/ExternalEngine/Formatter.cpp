@@ -5,8 +5,8 @@
 #include <mutex>
 #include <utility>
 
-#include "Base/FileSystem/Source.hpp"
-#include "Utils/Utils.hpp"
+#include <Base/FileSystem/Source.hpp>
+#include <Utils/Utils.hpp>
 
 namespace glsld {
     std::string Formatter::Format(std::string_view source, const std::filesystem::path& filename) const {

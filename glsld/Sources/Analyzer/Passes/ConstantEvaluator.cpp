@@ -17,10 +17,10 @@
 
 #include <glm/glm.hpp>
 
-#include "Analyzer/Syntax/Token.hpp"
-#include "Base/FileSystem/Source.hpp"
-#include "Base/MathMeta.hpp"
-#include "Utils/Utils.hpp"
+#include <Analyzer/Syntax/Token.hpp>
+#include <Base/FileSystem/Source.hpp>
+#include <Base/MathMeta.hpp>
+#include <Utils/Utils.hpp>
 
 namespace glsld {
     CallExpressionNode* FindLengthCall(MemberAccessExpressionNode* node) {

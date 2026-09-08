@@ -14,15 +14,15 @@
 #include <string_view>
 #include <vector>
 
-#include "Analyzer/Syntax/Document.hpp"
-#include "Base/FileSystem/IncludeLoader.hpp"
-#include "Base/FileSystem/Source.hpp"
-#include "Base/Arena.hpp"
-#include "Base/Hash.hpp"
-#include "Base/ThreadPool.hpp"
-#include "Server/Index/GlobalIndex.hpp"
-#include "Server/Index/IndexCache.hpp"
-#include "Server/Context.hpp"
+#include <Analyzer/Syntax/Document.hpp>
+#include <Base/FileSystem/IncludeLoader.hpp>
+#include <Base/FileSystem/Source.hpp>
+#include <Base/Arena.hpp>
+#include <Base/Hash.hpp>
+#include <Base/ThreadPool.hpp>
+#include <Server/Index/GlobalIndex.hpp>
+#include <Server/Index/IndexCache.hpp>
+#include <Server/Context.hpp>
 
 namespace glsld {
     struct ExtraShaderConfig {

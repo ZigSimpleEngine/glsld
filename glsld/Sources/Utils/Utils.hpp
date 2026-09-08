@@ -11,8 +11,8 @@
 #include <string_view>
 #include <vector>
 
-#include "Analyzer/Ast/Ast.hpp"
-#include "Analyzer/Syntax/Symbol.hpp"
+#include <Analyzer/Ast/Ast.hpp>
+#include <Analyzer/Syntax/Symbol.hpp>
 
 namespace glsld::Utils {
     // FileSystem

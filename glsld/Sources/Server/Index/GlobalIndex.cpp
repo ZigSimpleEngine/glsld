@@ -8,7 +8,7 @@
 #include <utility>
 #include <variant>
 
-#include "Base/Logger.hpp"
+#include <Base/Logger.hpp>
 
 namespace glsld {
     namespace {

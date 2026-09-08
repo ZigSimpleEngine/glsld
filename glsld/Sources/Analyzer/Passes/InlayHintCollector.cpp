@@ -8,9 +8,9 @@
 #include <string>
 #include <variant>
 
-#include "Analyzer/Ast/Ast.hpp"
-#include "Analyzer/Syntax/Symbol.hpp"
-#include "Utils/Utils.hpp"
+#include <Analyzer/Ast/Ast.hpp>
+#include <Analyzer/Syntax/Symbol.hpp>
+#include <Utils/Utils.hpp>
 
 namespace glsld {
     InlayHintCollector::InlayHintCollector(const Document& document)

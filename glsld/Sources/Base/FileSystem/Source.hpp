@@ -10,7 +10,7 @@
 #include <string_view>
 #include <vector>
 
-#include "Base/Hash.hpp"
+#include <Base/Hash.hpp>
 
 namespace glsld {
     enum class SourceKind {
