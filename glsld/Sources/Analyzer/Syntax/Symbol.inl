@@ -43,6 +43,14 @@ namespace glsld {
         return !name.empty();
     }
 
+    inline bool IsTypeSymbol(const SymbolInfo* symbol) {
+        return symbol != nullptr
+            && (symbol->kind == SymbolKind::kStruct
+            ||  symbol->kind == SymbolKind::kInterface
+            ||  symbol->kind == SymbolKind::kOpaqueType
+            ||  symbol->kind == SymbolKind::kTypeAlias);
+    }
+
     inline const SymbolInfo* Scope::FindVisibleType(std::string_view name) const {
         auto it = visible_types_.find(name);
         return it != visible_types_.end() ? it->second : nullptr;

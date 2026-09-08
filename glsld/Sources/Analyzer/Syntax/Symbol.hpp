@@ -21,6 +21,7 @@ namespace glsld {
         kFunctionImpl,
         kInterface,
         kMacro,
+        kNamespace,
         kOpaqueType,
         kParameter,
         kPreprocessor,
@@ -153,10 +154,13 @@ namespace glsld {
         operator bool() const;
     };
 
+    bool IsTypeSymbol(const SymbolInfo* symbol);
+
     enum class ScopeKind {
         kBlock,
         kCommon,
         kMacroBody,
+        kNamespace,
         kGlobalTransparent,
         kBlockTransparent
     };

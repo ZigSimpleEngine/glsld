@@ -64,11 +64,21 @@ namespace glsld {
             std::string cached_key;
         };
 
+        struct NamespaceInfo {
+            NamespaceInfo*                       parent{ nullptr };
+            const SymbolInfo*                    symbol{ nullptr };
+            StringHeteroHashMap<SymbolReference> members; // 不用 span 因为可能不连续
+        };
+
+        using NamespaceRange = ankerl::unordered_dense::map<const Scope*, NamespaceInfo*>;
+
         ArenaPool::Lease                arena;
         std::vector<std::string>        dependencies; // [URI]
         std::vector<Builtin>            builtins;
         std::vector<MetadataAttachment> metadata_attachments;
         std::vector<TemplateInfo>       template_info;
+        std::vector<NamespaceInfo>      namespaces;
+        NamespaceRange                  namespace_ranges;
         DocumentSymbols                 symbols;
         std::string                     source;
         std::vector<Token>              raw_tokens;

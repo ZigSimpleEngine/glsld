@@ -19,6 +19,8 @@ namespace glsld {
             return 7;  // Property
         case SymbolKind::kPreprocessor:
             return 2;  // Module
+        case SymbolKind::kNamespace:
+            return 3;  // Namespace
         case SymbolKind::kInterface:
             return 11; // Interface
         case SymbolKind::kFunctionDecl:
@@ -335,12 +337,7 @@ namespace glsld {
     const SymbolInfo* Scope::FindTypeSymbol(std::string_view name) const {
         for (const auto* scope = this; scope != nullptr; scope = scope->parent_) {
             const auto* symbol = scope->FindSymbolInCurrentScope(name);
-            if (symbol != nullptr &&
-                (symbol->kind == SymbolKind::kStruct ||
-                 symbol->kind == SymbolKind::kInterface ||
-                 symbol->kind == SymbolKind::kOpaqueType ||
-                 symbol->kind == SymbolKind::kTypeAlias))
-            {
+            if (IsTypeSymbol(symbol)) {
                 return symbol;
             }
 
@@ -354,12 +351,7 @@ namespace glsld {
 #pragma warning(push)
 #pragma warning(disable : 4456)
                 const auto* symbol = child->FindSymbolInCurrentScope(name);
-                if (symbol != nullptr &&
-                    (symbol->kind == SymbolKind::kStruct ||
-                     symbol->kind == SymbolKind::kInterface ||
-                     symbol->kind == SymbolKind::kOpaqueType ||
-                     symbol->kind == SymbolKind::kTypeAlias))
-                {
+                if (IsTypeSymbol(symbol)) {
                     return symbol;
                 }
 #pragma warning(pop)
