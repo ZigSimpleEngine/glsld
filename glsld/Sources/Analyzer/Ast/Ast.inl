@@ -25,8 +25,16 @@ namespace glsld {
         return AstNodeKind::kSpirvIntrinsic;
     }
 
+    inline AstNodeKind ExpressionNode::kind() const {
+        return AstNodeKind::kExpression;
+    }
+
     inline AstNodeKind AttributeNode::kind() const {
         return AstNodeKind::kAttribute;
+    }
+
+    inline AstNodeKind StatementNode::kind() const {
+        return AstNodeKind::kStatement;
     }
 
     inline AstNodeKind PreprocessorNode::kind() const {
@@ -123,6 +131,10 @@ namespace glsld {
 
     inline AstNodeKind MemberAccessExpressionNode::kind() const {
         return AstNodeKind::kMemberAccessExpression;
+    }
+
+    inline AstNodeKind DeclarationNode::kind() const {
+        return AstNodeKind::kDeclaration;
     }
 
     inline AstNodeKind TypeAliasDeclarationNode::kind() const {

@@ -1464,11 +1464,11 @@ namespace glsld::Providers {
         ContextLocator locator(*snapshot, dot_location);
         const auto* node = locator.result();
 
-        auto* expr_node = dynamic_cast<const ExpressionNode*>(node);
-        if (expr_node == nullptr) {
+        if (node->kind() != AstNodeKind::kExpression) {
             return {};
         }
 
+        auto* expr_node = static_cast<const ExpressionNode*>(node);
         const auto& type_info = expr_node->evaluated_type;
         if (!type_info.is_valid()) {
             return {};

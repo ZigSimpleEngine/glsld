@@ -52,6 +52,7 @@ namespace glsld {
         kSpirvIntrinsic,
 
         // Declarations
+        kDeclaration,
         kTypeAliasDeclaration,
         kNamespaceDeclaration,
         kFunctionDeclaration,
@@ -60,6 +61,7 @@ namespace glsld {
         kStructDeclaration,
 
         // Statements
+        kStatement,
         kCompoundStatement,     // { ... }
         kIfStatement,
         kForStatement,
@@ -75,6 +77,7 @@ namespace glsld {
         kNullStatement,         // empty statement ";"
 
         // Expressions
+        kExpression,
         kInitializerListExpression,
         kCastExpression,        // (int)value;
         kBinaryExpression,
@@ -152,7 +155,9 @@ namespace glsld {
 
     struct ExpressionNode : public AstNode {
         TypeInfo evaluated_type;
+
         using AstNode::AstNode;
+        AstNodeKind kind() const override;
     };
 
     struct AttributeNode final : public AstNode {
@@ -166,7 +171,9 @@ namespace glsld {
 
     struct StatementNode : public AstNode {
         ArenaVector<AttributeNode*> attributes{ ArenaAllocator<AttributeNode*>(arena) };
+
         using AstNode::AstNode;
+        AstNodeKind kind() const override;
     };
 
     struct PreprocessorNode final : public StatementNode {
@@ -365,7 +372,9 @@ namespace glsld {
 
     struct DeclarationNode : public StatementNode {
         SymbolInfo* declared_symbol{ nullptr };
+
         using StatementNode::StatementNode;
+        AstNodeKind kind() const override;
     };
 
     struct TypeAliasDeclarationNode final : public DeclarationNode {

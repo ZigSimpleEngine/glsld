@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <memory>
 #include <print>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -101,7 +102,7 @@ namespace {
     }
 }
 
-int main(int argc, char** argv) { // --benchmark or --debug-ast
+extern "C++" int main(int argc, const char* argv[]) { // --benchmark or --debug-ast
 #ifdef _WIN64
     (void)_setmode(_fileno(stdin), _O_BINARY);
     (void)_setmode(_fileno(stdout), _O_BINARY);
