@@ -465,9 +465,9 @@ void main() {
     OverloadFunction(Float32 + Float64);     // float32 + float64 -> float64
 
     // vector type promotion
-    ivec2 int2 = ivec2(1, 2);
-    ivec3 int3 = ivec3(1, 2, 3);
-    ivec4 int4 = ivec4(1, 2, 3, 4);
+    auto int2 = ivec2(1, 2);
+    auto int3 = ivec3(1, 2, 3);
+    auto int4 = ivec4(1, 2, 3, 4);
 
     OverloadFunction(int2 + int2);           // ivec2 + ivec2 -> ivec2
     OverloadFunction(int2 * int2);           // ivec2 * ivec2 -> ivec2
@@ -477,9 +477,9 @@ void main() {
     OverloadFunction(int4 * int4);           // ivec4 * ivec4 -> ivec4
 
     // float vector type promotion
-    vec2 float2 = vec2(1.0f, 2.0f);
-    vec3 float3 = vec3(1.0f, 2.0f, 3.0f);
-    vec4 float4 = vec4(1.0f, 2.0f, 3.0f, 4.0f);
+    auto float2 = vec2(1.0f, 2.0f);
+    auto float3 = vec3(1.0f, 2.0f, 3.0f);
+    auto float4 = vec4(1.0f, 2.0f, 3.0f, 4.0f);
 
     OverloadFunction(float2 + float2);       // vec2 + vec2 -> vec2
     OverloadFunction(float2 * float2);       // vec2 * vec2 -> vec2
@@ -489,9 +489,9 @@ void main() {
     OverloadFunction(float4 * float4);       // vec4 * vec4 -> vec4
 
     // double vector type promotion
-    dvec2 double2 = dvec2(1.0lf, 2.0lf);
-    dvec3 double3 = dvec3(1.0lf, 2.0lf, 3.0lf);
-    dvec4 double4 = dvec4(1.0lf, 2.0lf, 3.0lf, 4.0lf);
+    auto double2 = dvec2(1.0lf, 2.0lf);
+    auto double3 = dvec3(1.0lf, 2.0lf, 3.0lf);
+    auto double4 = dvec4(1.0lf, 2.0lf, 3.0lf, 4.0lf);
 
     OverloadFunction(double2 + double2);     // dvec2 + dvec2 -> dvec2
     OverloadFunction(double2 * double2);     // dvec2 * dvec2 -> dvec2
@@ -512,9 +512,9 @@ void main() {
     OverloadFunction((double)(1 + 2));
 
     // test scalar expression overloads
-    float  Scalar1 = 1.0f;
-    double Scalar2 = 1.0lf;
-    int    Scalar3 = 1;
+    auto Scalar1 = 1.0f;
+    auto Scalar2 = 1.0lf;
+    auto Scalar3 = 1;
 
     OverloadFunction(Scalar1 + Scalar1);     // float + float -> float
     OverloadFunction(Scalar1 - Scalar1);     // float - float -> float
@@ -579,9 +579,9 @@ void main() {
     OverloadFunction(int4 / Scalar3);        // ivec4 / int -> ivec4
 
     // test square matrix expression overloads
-    mat2 float2x2 = mat2(1.0f);
-    mat3 float3x3 = mat3(1.0f);
-    mat4 float4x4 = mat4(1.0f);
+    auto float2x2 = mat2(1.0f);
+    auto float3x3 = mat3(1.0f);
+    auto float4x4 = mat4(1.0f);
 
     OverloadFunction(float2x2 + float2x2);    // mat2 + mat2 -> mat2
     OverloadFunction(float2x2 - float2x2);    // mat2 - mat2 -> mat2
@@ -608,12 +608,12 @@ void main() {
     OverloadFunction(float4 * float4x4);      // vec4 * mat4 -> vec4
 
     // test non-square matrix expression overloads
-    mat2x3 float2x3 = mat2x3(1.0f);           // 2 columns, 3 rows
-    mat3x2 float3x2 = mat3x2(1.0f);           // 3 columns, 2 rows
-    mat2x4 float2x4 = mat2x4(1.0f);           // 2 columns, 4 rows
-    mat4x2 float4x2 = mat4x2(1.0f);           // 4 columns, 2 rows
-    mat3x4 float3x4 = mat3x4(1.0f);           // 3 columns, 4 rows
-    mat4x3 float4x3 = mat4x3(1.0f);           // 4 columns, 3 rows
+    auto float2x3 = mat2x3(1.0f);           // 2 columns, 3 rows
+    auto float3x2 = mat3x2(1.0f);           // 3 columns, 2 rows
+    auto float2x4 = mat2x4(1.0f);           // 2 columns, 4 rows
+    auto float4x2 = mat4x2(1.0f);           // 4 columns, 2 rows
+    auto float3x4 = mat3x4(1.0f);           // 3 columns, 4 rows
+    auto float4x3 = mat4x3(1.0f);           // 4 columns, 3 rows
 
     OverloadFunction(float2x3 + float2x3);    // mat2x3 + mat2x3 -> mat2x3
     OverloadFunction(float2x3 - float2x3);    // mat2x3 - mat2x3 -> mat2x3
@@ -691,16 +691,16 @@ void main() {
     OverloadFunction(UInt16, UInt8, UInt8, Float32);
 
     // test swizzle overloads
-    mat4 Matrix = mat4(
+    auto Matrix = mat4(
         vec4(1.0f,  2.0f,  3.0f,  4.0f),
         vec4(5.0f,  6.0f,  7.0f,  8.0f),
         vec4(9.0f,  10.0f, 11.0f, 12.0f),
         vec4(13.0f, 14.0f, 15.0f, 16.0f)
     );
 
-    vec4 Vector = Matrixv[0].xyzw;
-    float Component1 = Vector.x;
-    float Component2 = Matrix[1].xyzw.x;
+    auto Vector     = Matrix[0].xyzw;
+    auto Component1 = Vector.x;
+    auto Component2 = Matrix[1].xyzw.x;
 
     OverloadFunction(Component1);
     OverloadFunction(Component2);
@@ -728,15 +728,15 @@ void main() {
     OverloadFunction(GetIVec2() * GetInt() + GetIVec2() / GetInt());
 
     // Array-like access + swizzle + arithmetic
-    uint  uintArray1D[2]    = uint[2](1u, 2u);
-    uint  uintArray1D_4[4]  = uint[4](1u, 2u, 3u, 4u);
-    vec2  vec2Array1D_3[3]  = vec2[](vec2(1.0f, 2.0f), vec2(3.0f, 4.0f), vec2(5.0f, 6.0f));
-    vec3  vec3Array1D_2[2]  = vec3[](vec3(1.0f, 2.0f, 3.0f), vec3(4.0f, 5.0f, 6.0f));
-    vec4  vec4Array2D_2[2]  = vec4[](vec4(1.0f, 2.0f, 3.0f, 4.0f), vec4(5.0f, 6.0f, 7.0f, 8.0f));
-    dvec2 devc2Array1D_2[2] = dvec2[](dvec2(1.0lf, 2.0lf), dvec2(3.0lf, 4.0lf));
-    ivec3 ivec3Array1D_2[2] = ivec3[](ivec3(1, 2, 3), ivec3(4, 5, 6));
-    mat3  mat3Array1D_2[2]  = mat3[](mat3(1.0f), mat3(2.0f));
-    mat4  mat4Array1D_2[2]  = mat4[](mat4(1.0f), mat4(2.0f));
+    auto uintArray1D[2]    = uint[2](1u, 2u);
+    auto uintArray1D_4[4]  = uint[4](1u, 2u, 3u, 4u);
+    auto vec2Array1D_3[3]  = vec2[](vec2(1.0f, 2.0f), vec2(3.0f, 4.0f), vec2(5.0f, 6.0f));
+    auto vec3Array1D_2[2]  = vec3[](vec3(1.0f, 2.0f, 3.0f), vec3(4.0f, 5.0f, 6.0f));
+    auto vec4Array2D_2[2]  = vec4[](vec4(1.0f, 2.0f, 3.0f, 4.0f), vec4(5.0f, 6.0f, 7.0f, 8.0f));
+    auto dvec2Array1D_2[2] = dvec2[](dvec2(1.0lf, 2.0lf), dvec2(3.0lf, 4.0lf));
+    auto ivec3Array1D_2[2] = ivec3[](ivec3(1, 2, 3), ivec3(4, 5, 6));
+    auto mat3Array1D_2[2]  = mat3[](mat3(1.0f), mat3(2.0f));
+    auto mat4Array1D_2[2]  = mat4[](mat4(1.0f), mat4(2.0f));
 
     // GL_NV_explicit_typecast: scalar -> scalar
     OverloadFunction((bool)Scalar1);
@@ -808,31 +808,31 @@ void main() {
     OverloadFunction((mat2)(Scalar1, Scalar2, Scalar3));
 
     // Buffer reference conversions from GL_EXT_buffer_reference(_uvec2)
-    _Buffer      BufferFromUInt64 = (_Buffer)UInt64;
-    _Buffer      BufferFromUVec2  = (_Buffer)uvec2(0u, 0u);
-    uint64_t     UInt64FromBuffer = (uint64_t)BufferFromUInt64;
-    uvec2        UVec2FromBuffer  = (uvec2)BufferFromUInt64;
-    _OtherBuffer OtherFromBuffer  = (_OtherBuffer)BufferFromUInt64;
+    auto BufferFromUInt64 = (_Buffer)UInt64;
+    auto BufferFromUVec2  = (_Buffer)uvec2(0u, 0u);
+    auto UInt64FromBuffer = (uint64_t)BufferFromUInt64;
+    auto UVec2FromBuffer  = (uvec2)BufferFromUInt64;
+    auto OtherFromBuffer  = (_OtherBuffer)BufferFromUInt64;
 
     // Invalid casts required by the negative side of the extension rules.
     // TypeResolver should leave these expressions as unknown/error types.
-    vec4 InvalidVectorGrowth   = (vec4)float2;          // vector component count increases
-    int  InvalidVectorScalar   = (int)float4;           // vector -> scalar
-    mat2 InvalidVec3Matrix     = (mat2)float3;          // only four-component vector -> mat2
-    vec4 InvalidMatrixVector   = (vec4)float4x4;        // matrix -> vector
-    float InvalidMatrixScalar  = (float)float2x2;       // matrix -> scalar
-    int  InvalidArrayScalar    = (int)uintArray1D;      // array casts are unsupported
+    auto InvalidVectorGrowth = (vec4)float2;          // vector component count increases
+    auto InvalidVectorScalar = (int)float4;           // vector -> scalar
+    auto InvalidVec3Matrix   = (mat2)float3;          // only four-component vector -> mat2
+    auto InvalidMatrixVector = (vec4)float4x4;        // matrix -> vector
+    auto InvalidMatrixScalar = (float)float2x2;       // matrix -> scalar
+    auto InvalidArrayScalar  = (int)uintArray1D;      // array casts are unsupported
 
     InnerData InnerValue;
     OuterData OuterValue;
-    InnerData InvalidStructSource = (InnerData)OuterValue;
-    InnerData InvalidStructTarget = (InnerData)Scalar3;
+    auto InvalidStructSource = (InnerData)OuterValue;
+    auto InvalidStructTarget = (InnerData)Scalar3;
 
     // also test overloads that accept whole arrays
     OverloadFunction(vec2Array1D_3);
     OverloadFunction(vec3Array1D_2);
     OverloadFunction(vec4Array2D_2);
-    OverloadFunction(devc2Array1D_2);
+    OverloadFunction(dvec2Array1D_2);
     OverloadFunction(ivec3Array1D_2);
     OverloadFunction(mat3Array1D_2);
     OverloadFunction(uintArray1D);
@@ -842,7 +842,7 @@ void main() {
     OverloadFunction(vec2Array1D_3[0] + vec2Array1D_3[1]);
     OverloadFunction(vec3Array1D_2[0] - vec3Array1D_2[1]);
     OverloadFunction(vec4Array2D_2[0] * vec4Array2D_2[1]);
-    OverloadFunction(devc2Array1D_2[0] / devc2Array1D_2[1]);
+    OverloadFunction(dvec2Array1D_2[0] / dvec2Array1D_2[1]);
     OverloadFunction(ivec3Array1D_2[0] + ivec3Array1D_2[1]);
     OverloadFunction(mat3Array1D_2[0] * mat3Array1D_2[1]);
 
@@ -850,7 +850,7 @@ void main() {
     OverloadFunction((vec2Array1D_3[0] + vec2Array1D_3[2]).xy);
     OverloadFunction((vec3Array1D_2[1] * vec3Array1D_2[0]).zyx);
     OverloadFunction((vec4Array2D_2[0] - vec4Array2D_2[1]).xyzw);
-    OverloadFunction((devc2Array1D_2[0] + devc2Array1D_2[1]).yx);
+    OverloadFunction((dvec2Array1D_2[0] + dvec2Array1D_2[1]).yx);
     OverloadFunction((ivec3Array1D_2[1] / ivec3Array1D_2[0]).xyz);
 
     // Constructor calls with nested expressions
@@ -900,7 +900,7 @@ void main() {
     OverloadFunction((vec2Array1D_3[0] + GetVec2()).xy);
     OverloadFunction((vec3Array1D_2[1] * GetVec3()).zyx);
     OverloadFunction((vec4Array2D_2[0] - GetVec4()).xyzw);
-    OverloadFunction((devc2Array1D_2[0] / GetDVec2()).yx);
+    OverloadFunction((dvec2Array1D_2[0] / GetDVec2()).yx);
     OverloadFunction((ivec3Array1D_2[1] + GetIVec3()).xyz);
 
     // Constructor with array element and arithmetic
@@ -926,14 +926,14 @@ void main() {
     OverloadFunction(vec2(vec2Array1D_3[0].x, vec2Array1D_3[1].x));
     OverloadFunction(vec3(vec3Array1D_2[0].x, vec3Array1D_2[0].y, vec3Array1D_2[1].z));
     OverloadFunction(vec4(vec4Array2D_2[0].x, vec4Array2D_2[0].y, vec4Array2D_2[1].z, vec4Array2D_2[1].w));
-    OverloadFunction(dvec2(devc2Array1D_2[0].x, devc2Array1D_2[1].y));
+    OverloadFunction(dvec2(dvec2Array1D_2[0].x, dvec2Array1D_2[1].y));
     OverloadFunction(ivec3(ivec3Array1D_2[0].x, ivec3Array1D_2[1].y, ivec3Array1D_2[0].z));
 
     // Constructor with mixed function calls and array access
     OverloadFunction(vec2(vec2Array1D_3[0] + GetVec2()));
     OverloadFunction(vec3(vec3Array1D_2[1] * GetVec3()));
     OverloadFunction(vec4(vec4Array2D_2[0] - GetVec4()));
-    OverloadFunction(dvec2(devc2Array1D_2[0] / GetDVec2()));
+    OverloadFunction(dvec2(dvec2Array1D_2[0] / GetDVec2()));
     OverloadFunction(ivec3(ivec3Array1D_2[1] + GetIVec3()));
 
     // Swizzle on constructor results
@@ -959,7 +959,7 @@ void main() {
     // Super nested: array[function().member operation] + constructor
     OverloadFunction(vec2(vec2Array1D_3[0].x + GetVec2().x, vec2Array1D_3[1].y * GetVec2().y));
     OverloadFunction(vec3(vec3Array1D_2[0].x + GetVec3().x, vec3Array1D_2[1].y - GetVec3().y, vec3Array1D_2[0].z * GetVec3().z));
-    OverloadFunction(dvec2(devc2Array1D_2[0].x * GetDVec2().x, devc2Array1D_2[1].y / GetDVec2().y));
+    OverloadFunction(dvec2(dvec2Array1D_2[0].x * GetDVec2().x, dvec2Array1D_2[1].y / GetDVec2().y));
 
     // Chain of swizzles and operations
     OverloadFunction(((GetVec4().xy + GetVec2()) * GetFloat()).xy);
@@ -969,37 +969,37 @@ void main() {
     // --- Test array types with different dimensions and element types ---
 
     // 1D arrays
-    int    intArray1D_2[2]    = int[2](1, 2);
-    int    intArray1D_3[3]    = int[3](1, 2, 3);
-    float  floatArray1D_5[5]  = float[5](1.0f, 2.0f, 3.0f, 4.0f, 5.0f);
-    double doubleArray1D_4[4] = double[4](1.0lf, 2.0lf, 3.0lf, 4.0lf);
+    auto intArray1D_2[2]    = int[2](1, 2);
+    auto intArray1D_3[3]    = int[3](1, 2, 3);
+    auto floatArray1D_5[5]  = float[5](1.0f, 2.0f, 3.0f, 4.0f, 5.0f);
+    auto doubleArray1D_4[4] = double[4](1.0lf, 2.0lf, 3.0lf, 4.0lf);
 
     OverloadFunction(floatArray1D_5); // Test array parameter overload
     OverloadFunction(intArray1D_2); // Test array parameter overload (size 2)
     OverloadFunction(intArray1D_3); // Test array parameter overload (size 3)
 
     // 1D arrays of scalar types with different precision
-    int8_t    int8Array1D_3[3]    = int8_t[3](int8_t(1), int8_t(2), int8_t(3));
-    uint16_t  uint16Array1D_3[3]  = uint16_t[3](uint16_t(1), uint16_t(2), uint16_t(3));
-    float32_t float32Array1D_3[3] = float32_t[3](1.0f, 2.0f, 3.0f);
-    float64_t float64Array1D_3[3] = float64_t[3](1.0lf, 2.0lf, 3.0lf);
+    auto int8Array1D_3[3]    = int8_t[3](int8_t(1), int8_t(2), int8_t(3));
+    auto uint16Array1D_3[3]  = uint16_t[3](uint16_t(1), uint16_t(2), uint16_t(3));
+    auto float32Array1D_3[3] = float32_t[3](1.0f, 2.0f, 3.0f);
+    auto float64Array1D_3[3] = float64_t[3](1.0lf, 2.0lf, 3.0lf);
 
     OverloadFunction(int8Array1D_3[0]);
     OverloadFunction(uint16Array1D_3[1]);
 
     // 1D arrays of vectors
-    vec2 vec2Array1D_4[4] = vec2[4](vec2(1.0f, 2.0f), vec2(3.0f, 4.0f), vec2(5.0f, 6.0f), vec2(7.0f, 8.0f));
-    vec3 vec3Array1D_3[3] = vec3[3](vec3(1.0f, 2.0f, 3.0f), vec3(4.0f, 5.0f, 6.0f), vec3(7.0f, 8.0f, 9.0f));
+    auto vec2Array1D_4[4] = vec2[4](vec2(1.0f, 2.0f), vec2(3.0f, 4.0f), vec2(5.0f, 6.0f), vec2(7.0f, 8.0f));
+    auto vec3Array1D_3[3] = vec3[3](vec3(1.0f, 2.0f, 3.0f), vec3(4.0f, 5.0f, 6.0f), vec3(7.0f, 8.0f, 9.0f));
 
     OverloadFunction(vec2Array1D_4); // Test array parameter overload
 
     // 2D arrays
-    int intArray2D_2x3[2][3] = int[2][3](
+    auto intArray2D_2x3[2][3] = int[2][3](
         int[3](1, 2, 3),
         int[3](4, 5, 6)
     );
 
-    float floatArray2D_3x4[3][4] = float[3][4](
+    auto floatArray2D_3x4[3][4] = float[3][4](
         float[4](1.0f, 2.0f, 3.0f, 4.0f),
         float[4](5.0f, 6.0f, 7.0f, 8.0f),
         float[4](9.0f, 10.0f, 11.0f, 12.0f)
@@ -1007,17 +1007,17 @@ void main() {
 
     OverloadFunction(intArray2D_2x3); // Test array parameter overload
 
-    vec2 vec2Array2D_2x2[2][2] = vec2[2][2](
+    auto vec2Array2D_2x2[2][2] = vec2[2][2](
         vec2[2](vec2(1.0f), vec2(2.0f)),
         vec2[2](vec2(3.0f), vec2(4.0f))
     );
 
-    vec3 vec3Array2D_2x2[2][2] = vec3[2][2](
+    auto vec3Array2D_2x2[2][2] = vec3[2][2](
         vec3[2](vec3(1.0f), vec3(2.0f)),
         vec3[2](vec3(3.0f), vec3(4.0f))
     );
 
-    mat2 mat2Array2D_2x2[2][2] = mat2[2][2](
+    auto mat2Array2D_2x2[2][2] = mat2[2][2](
         mat2[2](mat2(1.0f), mat2(2.0f)),
         mat2[2](mat2(3.0f), mat2(4.0f))
     );
@@ -1027,7 +1027,7 @@ void main() {
     OverloadFunction(mat2Array2D_2x2); // Test array parameter overload
 
     // 3D arrays
-    float floatArray3D_2x2x3[2][2][3] = float[2][2][3](
+    auto floatArray3D_2x2x3[2][2][3] = float[2][2][3](
         float[2][3](
             float[3](1.0f, 2.0f, 3.0f),
             float[3](4.0f, 5.0f, 6.0f)
@@ -1038,7 +1038,7 @@ void main() {
         )
     );
 
-    vec2 vec2Array3D_2x2x2[2][2][2] = vec2[2][2][2](
+    auto vec2Array3D_2x2x2[2][2][2] = vec2[2][2][2](
         vec2[2][2](
             vec2[2](vec2(1.0f), vec2(2.0f)),
             vec2[2](vec2(3.0f), vec2(4.0f))
@@ -1049,7 +1049,7 @@ void main() {
         )
     );
 
-    vec3 vec3Array3D_2x2x2[2][2][2] = vec3[2][2][2](
+    auto vec3Array3D_2x2x2[2][2][2] = vec3[2][2][2](
         vec3[2][2](
             vec3[2](vec3(1.0f), vec3(2.0f)),
             vec3[2](vec3(3.0f), vec3(4.0f))
@@ -1104,7 +1104,7 @@ void main() {
     OverloadFunction(uint[2](10u, 20u));
     OverloadFunction(uint[](100u, 200u, 300u, 400u));
 
-    uint16_t uint16Array1D_3[3] = uint16_t[3](1us, 2us, 3us);
+    auto uint16Array1D_3[3] = uint16_t[3](1us, 2us, 3us);
     OverloadFunction(uint16Array1D_3);
     OverloadFunction(uint16_t[3](4us, 5us, 6us));
     OverloadFunction(uint16_t[](7us, 8us, 9us));
@@ -1130,7 +1130,7 @@ void main() {
     ));
 
     // double[4]
-    double doubleArray1D_4[4] = double[4](1.0LF, 2.0LF, 3.0LF, 4.0LF);
+    auto doubleArray1D_4[4] = double[4](1.0LF, 2.0LF, 3.0LF, 4.0LF);
     OverloadFunction(doubleArray1D_4);
     OverloadFunction(double[4](0.0LF, 0.0LF, 0.0LF, 0.0LF));
     OverloadFunction(double[](9.0LF, 8.0LF, 7.0LF, 6.0LF));
@@ -1160,7 +1160,7 @@ void main() {
     OverloadFunction(vec2Array1D_4);
 
     // dvec2[2]
-    dvec2 dvec2Array1D_2[2] = dvec2[2](dvec2(1.0LF), dvec2(2.0LF));
+    auto dvec2Array1D_2[2] = dvec2[2](dvec2(1.0LF), dvec2(2.0LF));
     OverloadFunction(dvec2Array1D_2);
     OverloadFunction(dvec2[2](dvec2(0), dvec2(1)));
     OverloadFunction(dvec2[](dvec2(5), dvec2(6)));
