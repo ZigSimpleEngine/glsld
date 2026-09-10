@@ -1048,7 +1048,7 @@ namespace glsld {
                 auto saved_tokens      = std::move(expanded_tokens_);
                 const auto saved_index = token_index_;
 
-                std::vector<Token> local(slice_rhs.begin(), slice_rhs.end());
+                auto local = std::vector(std::from_range, slice_rhs);
                 local.push_back({ .type = TokenType::kSemicolon });
 
                 expanded_tokens_ = std::move(local);

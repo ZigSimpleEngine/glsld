@@ -86,7 +86,7 @@ namespace glsld {
         std::vector<std::string> results;
         auto it = reverse_dependencies_.find(changed_uri);
         if (it != reverse_dependencies_.end()) {
-            results.assign(it->second.begin(), it->second.end());
+            results.assign_range(it->second);
         }
 
         return results;

@@ -80,7 +80,7 @@ namespace glsld {
         TypeInfo SniffLiteralType(const Token& token);
         TypeInfo ResolveSwizzleType(const TypeInfo& base_type, std::string_view swizzle);
 
-        SymbolReference ResolveOverload(SymbolListView candidates, std::span<const TypeInfo> call_arg_types);
+        SymbolReference ResolveOverload(SymbolListView candidates, std::vector<TypeInfo>&& call_arg_types);
 
         TypeInfo ResolveBinaryOperationType(const TypeInfo& left_type, const TypeInfo& right_type, TokenType op);
         TypeInfo ResolveArithmeticPromotion(const TypeInfo& left_type, const TypeInfo& right_type, TokenType op);

@@ -436,7 +436,7 @@ namespace glsld {
             return;
         }
 
-        auto resolved_sizes = std::vector(decl_sizes.begin(), decl_sizes.end());
+        auto resolved_sizes = std::vector(std::from_range, decl_sizes);
         const auto min_size = std::min(resolved_sizes.size(), init_sizes.size());
         bool       changed  = false;
 
@@ -968,7 +968,7 @@ namespace glsld {
 
         callee_node->linked_symbols = std::visit(Overloaded{
             [&](SymbolListView candidates) -> SymbolReferenceView {
-                const auto resolved = ResolveOverload(candidates, call_arg_types);
+                const auto resolved = ResolveOverload(candidates, std::move(call_arg_types));
 
                 return std::visit(Overloaded{
                     [&](const SymbolInfo* best_match) -> SymbolReferenceView {
@@ -2085,8 +2085,8 @@ namespace glsld {
         return result;
     }
 
-    SymbolReference TypeResolver::ResolveOverload(SymbolListView candidates, std::span<const TypeInfo> call_arg_types) {
-        std::vector<TypeInfo> normalized_call_args(call_arg_types.begin(), call_arg_types.end());
+    SymbolReference TypeResolver::ResolveOverload(SymbolListView candidates, std::vector<TypeInfo>&& call_arg_types) {
+        auto normalized_call_args = std::vector(std::from_range, call_arg_types | std::views::as_rvalue);
         if (normalized_call_args.empty()) {
             normalized_call_args.push_back(TypeInfo{
                 .typename_token = Token{
