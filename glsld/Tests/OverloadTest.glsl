@@ -969,37 +969,37 @@ void main() {
     // --- Test array types with different dimensions and element types ---
 
     // 1D arrays
-    auto intArray1D_2[2]    = int[2](1, 2);
-    auto intArray1D_3[3]    = int[3](1, 2, 3);
-    auto floatArray1D_5[5]  = float[5](1.0f, 2.0f, 3.0f, 4.0f, 5.0f);
-    auto doubleArray1D_4[4] = double[4](1.0lf, 2.0lf, 3.0lf, 4.0lf);
+    auto intArray1D_2    = int[2](1, 2);
+    auto intArray1D_3    = int[3](1, 2, 3);
+    auto floatArray1D_5  = float[5](1.0f, 2.0f, 3.0f, 4.0f, 5.0f);
+    auto doubleArray1D_4 = double[4](1.0lf, 2.0lf, 3.0lf, 4.0lf);
 
     OverloadFunction(floatArray1D_5); // Test array parameter overload
     OverloadFunction(intArray1D_2); // Test array parameter overload (size 2)
     OverloadFunction(intArray1D_3); // Test array parameter overload (size 3)
 
     // 1D arrays of scalar types with different precision
-    auto int8Array1D_3[3]    = int8_t[3](int8_t(1), int8_t(2), int8_t(3));
-    auto uint16Array1D_3[3]  = uint16_t[3](uint16_t(1), uint16_t(2), uint16_t(3));
-    auto float32Array1D_3[3] = float32_t[3](1.0f, 2.0f, 3.0f);
-    auto float64Array1D_3[3] = float64_t[3](1.0lf, 2.0lf, 3.0lf);
+    auto int8Array1D_3    = int8_t[3](int8_t(1), int8_t(2), int8_t(3));
+    auto uint16Array1D_3  = uint16_t[3](uint16_t(1), uint16_t(2), uint16_t(3));
+    auto float32Array1D_3 = float32_t[3](1.0f, 2.0f, 3.0f);
+    auto float64Array1D_3 = float64_t[3](1.0lf, 2.0lf, 3.0lf);
 
     OverloadFunction(int8Array1D_3[0]);
     OverloadFunction(uint16Array1D_3[1]);
 
     // 1D arrays of vectors
-    auto vec2Array1D_4[4] = vec2[4](vec2(1.0f, 2.0f), vec2(3.0f, 4.0f), vec2(5.0f, 6.0f), vec2(7.0f, 8.0f));
-    auto vec3Array1D_3[3] = vec3[3](vec3(1.0f, 2.0f, 3.0f), vec3(4.0f, 5.0f, 6.0f), vec3(7.0f, 8.0f, 9.0f));
+    auto vec2Array1D_4 = vec2[4](vec2(1.0f, 2.0f), vec2(3.0f, 4.0f), vec2(5.0f, 6.0f), vec2(7.0f, 8.0f));
+    auto vec3Array1D_3 = vec3[3](vec3(1.0f, 2.0f, 3.0f), vec3(4.0f, 5.0f, 6.0f), vec3(7.0f, 8.0f, 9.0f));
 
     OverloadFunction(vec2Array1D_4); // Test array parameter overload
 
     // 2D arrays
-    auto intArray2D_2x3[2][3] = int[2][3](
+    auto intArray2D_2x3 = int[2][3](
         int[3](1, 2, 3),
         int[3](4, 5, 6)
     );
 
-    auto floatArray2D_3x4[3][4] = float[3][4](
+    auto floatArray2D_3x4 = float[3][4](
         float[4](1.0f, 2.0f, 3.0f, 4.0f),
         float[4](5.0f, 6.0f, 7.0f, 8.0f),
         float[4](9.0f, 10.0f, 11.0f, 12.0f)
@@ -1007,17 +1007,17 @@ void main() {
 
     OverloadFunction(intArray2D_2x3); // Test array parameter overload
 
-    auto vec2Array2D_2x2[2][2] = vec2[2][2](
+    auto vec2Array2D_2x2 = vec2[2][2](
         vec2[2](vec2(1.0f), vec2(2.0f)),
         vec2[2](vec2(3.0f), vec2(4.0f))
     );
 
-    auto vec3Array2D_2x2[2][2] = vec3[2][2](
+    auto vec3Array2D_2x2 = vec3[2][2](
         vec3[2](vec3(1.0f), vec3(2.0f)),
         vec3[2](vec3(3.0f), vec3(4.0f))
     );
 
-    auto mat2Array2D_2x2[2][2] = mat2[2][2](
+    auto mat2Array2D_2x2 = mat2[2][2](
         mat2[2](mat2(1.0f), mat2(2.0f)),
         mat2[2](mat2(3.0f), mat2(4.0f))
     );
@@ -1027,7 +1027,7 @@ void main() {
     OverloadFunction(mat2Array2D_2x2); // Test array parameter overload
 
     // 3D arrays
-    auto floatArray3D_2x2x3[2][2][3] = float[2][2][3](
+    auto floatArray3D_2x2x3 = float[2][2][3](
         float[2][3](
             float[3](1.0f, 2.0f, 3.0f),
             float[3](4.0f, 5.0f, 6.0f)
@@ -1038,7 +1038,7 @@ void main() {
         )
     );
 
-    auto vec2Array3D_2x2x2[2][2][2] = vec2[2][2][2](
+    auto vec2Array3D_2x2x2 = vec2[2][2][2](
         vec2[2][2](
             vec2[2](vec2(1.0f), vec2(2.0f)),
             vec2[2](vec2(3.0f), vec2(4.0f))
@@ -1049,7 +1049,7 @@ void main() {
         )
     );
 
-    auto vec3Array3D_2x2x2[2][2][2] = vec3[2][2][2](
+    auto vec3Array3D_2x2x2 = vec3[2][2][2](
         vec3[2][2](
             vec3[2](vec3(1.0f), vec3(2.0f)),
             vec3[2](vec3(3.0f), vec3(4.0f))
@@ -1104,7 +1104,7 @@ void main() {
     OverloadFunction(uint[2](10u, 20u));
     OverloadFunction(uint[](100u, 200u, 300u, 400u));
 
-    auto uint16Array1D_3[3] = uint16_t[3](1us, 2us, 3us);
+    auto uint16Array1D_3 = uint16_t[3](1us, 2us, 3us);
     OverloadFunction(uint16Array1D_3);
     OverloadFunction(uint16_t[3](4us, 5us, 6us));
     OverloadFunction(uint16_t[](7us, 8us, 9us));
@@ -1130,7 +1130,7 @@ void main() {
     ));
 
     // double[4]
-    auto doubleArray1D_4[4] = double[4](1.0LF, 2.0LF, 3.0LF, 4.0LF);
+    auto doubleArray1D_4 = double[4](1.0LF, 2.0LF, 3.0LF, 4.0LF);
     OverloadFunction(doubleArray1D_4);
     OverloadFunction(double[4](0.0LF, 0.0LF, 0.0LF, 0.0LF));
     OverloadFunction(double[](9.0LF, 8.0LF, 7.0LF, 6.0LF));
@@ -1160,7 +1160,7 @@ void main() {
     OverloadFunction(vec2Array1D_4);
 
     // dvec2[2]
-    auto dvec2Array1D_2[2] = dvec2[2](dvec2(1.0LF), dvec2(2.0LF));
+    auto dvec2Array1D_2 = dvec2[2](dvec2(1.0LF), dvec2(2.0LF));
     OverloadFunction(dvec2Array1D_2);
     OverloadFunction(dvec2[2](dvec2(0), dvec2(1)));
     OverloadFunction(dvec2[](dvec2(5), dvec2(6)));

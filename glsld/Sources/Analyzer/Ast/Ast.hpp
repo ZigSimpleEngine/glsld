@@ -23,6 +23,8 @@ namespace glsld {
         FunctionTypeSpec*                 function_type{ nullptr };
         const SpirvIntrinsicNode*         spirv_type{ nullptr };
         const SymbolInfo*                 named_type_symbol{ nullptr };
+        std::string_view                  written_typename;
+        SourceLocation                    typename_begin;
 
         TypeSpec(Arena* arena);
 
@@ -338,6 +340,7 @@ namespace glsld {
         AstNodeKind kind() const override;
     };
 
+    struct NamespaceInfo;
     struct VariableExpressionNode final : public ExpressionNode {
         enum class NodeType {
             kCommonVariable,
@@ -345,11 +348,13 @@ namespace glsld {
             kBlockMember
         };
 
-        Token               original_token;
-        NodeType            node_type;
-        std::string_view    name;
-        SymbolReferenceView linked_symbols{ std::monostate{} };
-        const SymbolInfo*   named_type_symbol{ nullptr };
+        Token                original_token;
+        NodeType             node_type;
+        std::string_view     name;
+        SymbolReferenceView  linked_symbols{ std::monostate{} };
+        const SymbolInfo*    named_type_symbol{ nullptr };
+        const NamespaceInfo* qualifier_space{ nullptr };
+        std::string_view     written_name;
 
         using ExpressionNode::ExpressionNode;
         AstNodeKind kind() const override;
@@ -383,6 +388,17 @@ namespace glsld {
 
         using DeclarationNode::DeclarationNode;
         AstNodeKind kind() const override;
+    };
+
+    struct NamespaceDeclarationNode final : public DeclarationNode {
+        ArenaVector<Token>          names{ ArenaAllocator<Token>(arena) };
+        ArenaVector<StatementNode*> children{ ArenaAllocator<StatementNode*>(arena) };
+        std::string_view            alias_target; // 空：namespace X { ... }  非空：namespace X = Y::Z;
+
+        using DeclarationNode::DeclarationNode;
+        AstNodeKind kind() const override;
+
+        const Token* name() const;
     };
 
     struct VariableDeclarationNode final : public DeclarationNode {

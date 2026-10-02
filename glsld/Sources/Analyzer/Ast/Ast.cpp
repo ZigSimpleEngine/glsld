@@ -22,4 +22,12 @@ namespace glsld {
         : arena{ arena }
         , located_scope{ scope }
     {}
+
+    const Token* NamespaceDeclarationNode::name() const {
+        if (names.empty()) {
+            return nullptr;
+        }
+
+        return &names.back();
+    }
 }

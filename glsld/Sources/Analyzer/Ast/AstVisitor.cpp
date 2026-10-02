@@ -87,6 +87,9 @@ namespace glsld {
         case AstNodeKind::kTypeAliasDeclaration:
             VisitTypeAliasDeclaration(static_cast<TypeAliasDeclarationNode*>(node));
             break;
+        case AstNodeKind::kNamespaceDeclaration:
+            VisitNamespaceDeclaration(static_cast<NamespaceDeclarationNode*>(node));
+            break;
         case AstNodeKind::kFunctionDeclaration:
             VisitFunctionDeclaration(static_cast<FunctionDeclarationNode*>(node));
             break;
@@ -247,6 +250,12 @@ namespace glsld {
 
     void AstVisitor::VisitTypeAliasDeclaration(TypeAliasDeclarationNode* node) {
         TraverseTypeSpec(node->type_spec);
+    }
+
+    void AstVisitor::VisitNamespaceDeclaration(NamespaceDeclarationNode* node) {
+        for (auto* child : node->children) {
+            Traverse(child);
+        }
     }
 
     void AstVisitor::VisitFunctionDeclaration(FunctionDeclarationNode* node) {

@@ -26,6 +26,7 @@ namespace glsld {
         virtual void VisitSpirvIntrinsic(SpirvIntrinsicNode* node);
         virtual void VisitDeclarationGroup(DeclarationGroupNode* node);
         virtual void VisitTypeAliasDeclaration(TypeAliasDeclarationNode* node);
+        virtual void VisitNamespaceDeclaration(NamespaceDeclarationNode* node);
         virtual void VisitFunctionDeclaration(FunctionDeclarationNode* node);
         virtual void VisitVariableDeclaration(VariableDeclarationNode* node);
         virtual void VisitInterfaceDeclaration(InterfaceDeclarationNode* node);

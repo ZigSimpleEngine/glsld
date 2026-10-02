@@ -1,11 +1,19 @@
 #include "pch.hpp"
 #include "Document.hpp"
 
+#include <algorithm>
+#include <ranges>
 #include <utility>
 #include <variant>
+
 #include <Base/Logger.hpp>
 
 namespace glsld {
+    SymbolReference glsld::NamespaceInfo::Lookup(std::string_view name) const {
+        auto it = members.find(name);
+        return it != members.end() ? it->second : std::monostate{};
+    }
+
     SymbolReferenceView Document::ReferenceSymbol(const SymbolReference& reference) const {
         if (std::holds_alternative<std::monostate>(reference)) {
             return std::monostate{};
@@ -89,5 +97,137 @@ namespace glsld {
         }
 
         pending_macros_.clear();
+    }
+
+    NamespaceInfo* Document::FindNamespace(const Scope* scope) {
+        return const_cast<NamespaceInfo*>(std::as_const(*this).FindNamespace(scope));
+    }
+
+    const NamespaceInfo* Document::FindNamespace(const Scope* scope) const {
+        if (scope == nullptr)
+            return nullptr;
+        if (scope == symbols.root_scope())
+            return &global_namespace;
+        if (scope->kind() != ScopeKind::kNamespace)
+            return nullptr;
+
+        return FindNamespace(scope->host_symbol());
+    }
+
+    NamespaceInfo* Document::FindNamespace(const SymbolInfo* symbol) {
+        return const_cast<NamespaceInfo*>(std::as_const(*this).FindNamespace(symbol));
+    }
+
+    const NamespaceInfo* Document::FindNamespace(const SymbolInfo* symbol) const {
+        if (symbol == nullptr || symbol->kind != SymbolKind::kNamespace) {
+            return nullptr;
+        }
+
+        const auto it = namespace_symbols.find(symbol);
+        return it == namespace_symbols.end() ? nullptr : it->second;
+    }
+
+    NamespaceInfo* Document::NamespaceForDeclaration(const Scope* scope) {
+        while (scope != nullptr) {
+            if (auto* space = FindNamespace(scope)) {
+                return space;
+            }
+
+            if (scope->kind() != ScopeKind::kGlobalTransparent &&
+                scope->kind() != ScopeKind::kBlockTransparent)
+            {
+                return nullptr;
+            }
+
+            scope = scope->parent();
+        }
+
+        return nullptr;
+    }
+
+    SymbolReference Document::LookupUnqualified(const Scope* scope, std::string_view name) const {
+        for (auto* current = scope; current != nullptr; current = current->parent()) {
+            if (const auto* space = FindNamespace(current)) {
+                for (auto* owner = space; owner != nullptr; owner = owner->parent) {
+                    auto found = owner->Lookup(name);
+                    if (!std::holds_alternative<std::monostate>(found)) {
+                        return found;
+                    }
+                }
+
+                break;
+            }
+
+            if (const auto* symbol = current->FindSymbolInCurrentScope(name)) {
+                return symbol;
+            }
+        }
+
+        SymbolList functions;
+        for (const auto& builtin : builtins) {
+            auto found = builtin->LookupUnqualified(builtin->symbols.root_scope(), name);
+            if (const auto* single = std::get_if<const SymbolInfo*>(&found)) {
+                if (*single == nullptr) {
+                    continue;
+                }
+
+                if ((*single)->kind != SymbolKind::kFunctionDecl &&
+                    (*single)->kind != SymbolKind::kFunctionImpl)
+                {
+                    return *single;
+                }
+
+                functions.push_back(*single);
+            } else if (const auto* list = std::get_if<SymbolList>(&found)) {
+                functions.append_range(*list);
+            }
+        }
+
+        if (functions.size() == 1)
+            return functions.front();
+        if (!functions.empty())
+            return functions;
+        return std::monostate{};
+    }
+
+    bool Document::RegisterNamespaceMember(const SymbolInfo* symbol, std::string_view name) {
+        if (symbol == nullptr) {
+            return true;
+        }
+
+        auto* space = NamespaceForDeclaration(symbol->located_scope);
+        if (space == nullptr) {
+            return true;
+        }
+
+        auto [it, instered] = space->members.try_emplace(name, symbol);
+        if (instered) {
+            return true;
+        }
+
+        auto IsFunction = [](const SymbolInfo* value) -> bool {
+            return value != nullptr &&
+                (value->kind == SymbolKind::kFunctionDecl || value->kind == SymbolKind::kFunctionImpl);
+        };
+
+        if (auto* single = std::get_if<const SymbolInfo*>(&it->second)) {
+            if (*single == symbol)
+                return true;
+            if (!IsFunction(*single) || !IsFunction(symbol))
+                return false;
+
+            it->second = SymbolList{ *single, symbol };
+            return true;
+        }
+
+        if (auto* list = std::get_if<SymbolList>(&it->second)) {
+            if (!IsFunction(symbol))
+                return false;
+            if (!std::ranges::contains(*list, symbol))
+                list->push_back(symbol);
+            return true;
+        }
+
+        return false;
     }
 }

@@ -55,6 +55,15 @@ namespace glsld {
 
     using InactiveRegionMap = ankerl::unordered_dense::map<const SourceFile*, std::vector<InactiveRegion>, SourceFileHash>;
 
+    struct NamespaceInfo {
+        NamespaceInfo*                       parent{ nullptr };
+        const SymbolInfo*                    symbol{ nullptr };
+        StringHeteroHashMap<SymbolReference> members; // 不用 span 因为可能不连续
+        std::unique_ptr<SymbolInfo>          owner_symbol;
+
+        SymbolReference Lookup(std::string_view name) const;
+    };
+
     struct Document {
     public:
         using Builtin = std::shared_ptr<const Document>;
@@ -64,33 +73,33 @@ namespace glsld {
             std::string cached_key;
         };
 
-        struct NamespaceInfo {
-            NamespaceInfo*                       parent{ nullptr };
-            const SymbolInfo*                    symbol{ nullptr };
-            StringHeteroHashMap<SymbolReference> members; // 不用 span 因为可能不连续
-        };
+        using NamespaceSymbol = ankerl::unordered_dense::map<const SymbolInfo*, NamespaceInfo*>;
 
-        using NamespaceRange = ankerl::unordered_dense::map<const Scope*, NamespaceInfo*>;
+        ArenaPool::Lease                            arena;
+        std::vector<std::string>                    dependencies; // [URI]
+        std::vector<Builtin>                        builtins;
+        std::vector<MetadataAttachment>             metadata_attachments;
 
-        ArenaPool::Lease                arena;
-        std::vector<std::string>        dependencies; // [URI]
-        std::vector<Builtin>            builtins;
-        std::vector<MetadataAttachment> metadata_attachments;
-        std::vector<TemplateInfo>       template_info;
-        std::vector<NamespaceInfo>      namespaces;
-        NamespaceRange                  namespace_ranges;
-        DocumentSymbols                 symbols;
-        std::string                     source;
-        std::vector<Token>              raw_tokens;
-        std::vector<Token>              expanded_tokens;
-        InactiveRegionMap               inactive_regions;
-        TranslationUnitNode*            ast{ nullptr };
-        BindingMap                      bindings;
-        MacroTraceMap                   macro_traces;
-        MacroArgsTraceMap               macro_args_traces;
-        MacroExpansionMap               macro_expansions;
-        MacroTable                      macro_table;
-        int                             version{};
+        std::string                                 source;
+        std::vector<Token>                          raw_tokens;
+        std::vector<Token>                          expanded_tokens;
+        InactiveRegionMap                           inactive_regions;
+
+        std::vector<TemplateInfo>                   template_info;
+
+        NamespaceInfo                               global_namespace;
+        std::vector<std::unique_ptr<NamespaceInfo>> namespaces;
+        NamespaceSymbol                             namespace_symbols;
+
+        TranslationUnitNode*                        ast{ nullptr };
+        BindingMap                                  bindings;
+        DocumentSymbols                             symbols;
+        MacroTraceMap                               macro_traces;
+        MacroArgsTraceMap                           macro_args_traces;
+        MacroExpansionMap                           macro_expansions;
+        MacroTable                                  macro_table;
+
+        int                                         version{};
 
         Document()                = default;
         Document(const Document&) = delete;
@@ -109,6 +118,14 @@ namespace glsld {
         void InjectMacro(MacroDefinition definition);
         void InjectMacro(std::string_view name);
         void FinalizeInjectedMacros();
+
+        NamespaceInfo* FindNamespace(const Scope* scope);
+        const NamespaceInfo* FindNamespace(const Scope* scope) const;
+        NamespaceInfo* FindNamespace(const SymbolInfo* symbol);
+        const NamespaceInfo* FindNamespace(const SymbolInfo* symbol) const;
+        NamespaceInfo* NamespaceForDeclaration(const Scope* scope);
+        SymbolReference LookupUnqualified(const Scope* scope, std::string_view name) const;
+        bool RegisterNamespaceMember(const SymbolInfo* symbol, std::string_view name);
 
     private:
         StringHeteroHashMap<MacroDefinition> pending_macros_;

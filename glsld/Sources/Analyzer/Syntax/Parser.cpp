@@ -5,10 +5,8 @@
 #include <concepts>
 #include <format>
 #include <memory>
-#include <optional>
 #include <ranges>
 #include <stdexcept>
-#include <utility>
 
 #include <magic_enum/magic_enum_all.hpp>
 
@@ -105,6 +103,60 @@ namespace glsld {
         }
     }
 
+    std::optional<Parser::NameProbe> Parser::ProbeName(std::int64_t offset) {
+        NameProbe result;
+        result.begin = PeekToken(offset).location;
+
+        auto cursor = offset;
+        const NamespaceInfo* owner = nullptr;
+
+        if (PeekToken(cursor).type == TokenType::kColonColon) {
+            owner = &document_.global_namespace;
+            result.qualifier_space = owner;
+            result.spelling = "::";
+            ++cursor;
+        }
+
+        while (true) {
+            const auto& token = PeekToken(cursor);
+            if (token.type != TokenType::kIdentifier) {
+                return std::nullopt;
+            }
+
+            result.spelling += token.text;
+            ++cursor;
+
+            if (PeekToken(cursor).type != TokenType::kColonColon) {
+                result.leaf = token;
+                result.token_count = cursor - offset;
+                return result;
+            }
+
+            const auto found = owner != nullptr ? owner->Lookup(token.text) : document_.LookupUnqualified(current_scope(), token.text);
+
+            auto* single = std::get_if<const SymbolInfo*>(&found);
+            if (single == nullptr || *single == nullptr || (*single)->kind != SymbolKind::kNamespace) {
+                return std::nullopt;
+            }
+
+            owner = document_.FindNamespace(*single);
+            if (owner == nullptr) {
+                return std::nullopt;
+            }
+
+            result.prefixes.emplace_back(token, *single);
+            result.qualifier_space = owner;
+            result.spelling += "::";
+            ++cursor;
+        }
+    }
+
+    void Parser::BindNamePrefixes(const NameProbe& name) {
+        for (const auto& [token, symbol] : name.prefixes) {
+            document_.bindings.insert_or_assign(token.location, symbol);
+        }
+    }
+
     void Parser::Parse(
         SourceTable& source_table,
         IncludeLoader& include_loader,
@@ -159,6 +211,7 @@ namespace glsld {
     }
 
     StatementNode* Parser::ParseStatement() {
+        const auto statement_begin_index = token_index_;
         ArenaVector<AttributeNode*> attributes{ ArenaAllocator<AttributeNode*>(*document_.arena) };
         if (current_token().type == TokenType::kOpenBracket && PeekToken().type == TokenType::kOpenBracket) {
             attributes = ParseAttributeList();
@@ -171,6 +224,7 @@ namespace glsld {
         case TokenType::kBuiltInFunction:
         case TokenType::kIdentifier:
         case TokenType::kSpirvIntrinsic:
+        case TokenType::kColonColon:
             node = ParseCodeStatement();
             break;
         case TokenType::kKeyword:
@@ -198,10 +252,16 @@ namespace glsld {
             return MakeNode<NullStatementNode>(current_scope());
         }
 
+        // 防死循环
+        if (token_index_ == statement_begin_index) {
+            ConsumeToken();
+        }
+
         if (node != nullptr && !attributes.empty()) {
             node->attributes = std::move(attributes);
         }
 
+        RegisterNamespaceStatement(node);
         return node;
     }
 
@@ -410,6 +470,8 @@ namespace glsld {
         // current token is qualifier, type or identifier
         if (current_token().text == "using") {
             return ParseTypeAliasDeclaration();
+        } else if (current_token().text == "namespace") {
+            return ParseNamespaceDeclaration();
         }
 
         const auto statement_begin_index = token_index_;
@@ -439,7 +501,8 @@ namespace glsld {
         const bool common_calling = type_spec.empty() &&
                                    (token.type == TokenType::kIdentifier ||
                                     token.type == TokenType::kBuiltInFunction ||
-                                    token.type == TokenType::kSpirvIntrinsic);
+                                    token.type == TokenType::kSpirvIntrinsic ||
+                                    token.type == TokenType::kColonColon);
 
         const bool constructor       = !type_spec.empty() && token.type == TokenType::kOpenParen;
         const bool is_expr_primitive = token.text == "true" || token.text == "false";
@@ -448,7 +511,8 @@ namespace glsld {
             if (constructor) {
                 const bool is_complex = !type_spec.template_args.empty()
                                      ||  type_spec.spirv_type != nullptr
-                                     || !type_spec.array_sizes.empty();
+                                     || !type_spec.array_sizes.empty()
+                                     ||  type_spec.written_typename.contains("::");
                 if (is_complex) {
                     token_index_ = statement_begin_index;
                 } else {
@@ -699,15 +763,32 @@ namespace glsld {
                 continue;
             }
 
-            if (token.type == TokenType::kIdentifier) {
-                const auto* symbol_info = current_scope()->FindVisibleType(token.text);
-                if (symbol_info == nullptr) {
-                    break; // 不是类型标识符
+            if (token.type == TokenType::kIdentifier || token.type == TokenType::kColonColon) {
+                const auto name = ProbeName();
+                if (!name.has_value()) {
+                    break;
+                }
+
+                const SymbolInfo* type_symbol = nullptr;
+
+                if (name->qualifier_space != nullptr) {
+                    const auto found = name->qualifier_space->Lookup(name->leaf.text);
+                    if (const auto* single = std::get_if<const SymbolInfo*>(&found);
+                        single != nullptr && IsTypeSymbol(*single))
+                    {
+                        type_symbol = *single;
+                    }
+                } else {
+                    type_symbol = current_scope()->FindVisibleType(name->leaf.text);
+                }
+
+                if (type_symbol == nullptr) {
+                    break;
                 }
 
                 if (context == TypeParseContext::kDeclarationPrefix) {
                     // 仅在声明前缀模式下进行后续 Token 前瞻校验以消除歧义
-                    const auto& next_token = PeekToken();
+                    const auto& next_token = PeekToken(name->token_count);
                     if (next_token.type != TokenType::kIdentifier &&
                         next_token.type != TokenType::kOpenBracket &&
                         next_token.type != TokenType::kLessThan)
@@ -716,9 +797,12 @@ namespace glsld {
                     }
                 }
 
-                type_spec.named_type_symbol = symbol_info;
-                type_spec.specifiers.push_back(token);
-                ConsumeToken();
+                type_spec.named_type_symbol = type_symbol;
+                type_spec.typename_begin    = name->begin;
+                type_spec.written_typename  = document_.StoreTokenText(name->spelling);
+                type_spec.specifiers.push_back(name->leaf);
+                BindNamePrefixes(*name);
+                ConsumeToken(name->token_count);
                 ParseTemplateArguments();
                 continue;
             }
@@ -734,6 +818,65 @@ namespace glsld {
         }
 
         return type_spec;
+    }
+
+    void Parser::RegisterNamespaceStatement(StatementNode* node) {
+        if (node == nullptr) {
+            return;
+        }
+
+        auto Register = [&](const SymbolInfo* symbol) -> void {
+            if (symbol == nullptr) {
+                return;
+            }
+
+            const auto name =
+                symbol->kind == SymbolKind::kFunctionDecl ||
+                symbol->kind == SymbolKind::kFunctionImpl ?
+                Utils::UnmangleFunctionName(symbol->name) : symbol->name;
+
+            document_.RegisterNamespaceMember(symbol, name);
+        };
+
+        switch (node->kind()) {
+        case AstNodeKind::kDeclarationGroup:
+            for (auto* decl : static_cast<DeclarationGroupNode*>(node)->declarations) {
+                Register(decl->declared_symbol);
+            }
+            break;
+
+        case AstNodeKind::kTypeAliasDeclaration:
+        case AstNodeKind::kVariableDeclaration:
+        case AstNodeKind::kFunctionDeclaration:
+            Register(static_cast<DeclarationNode*>(node)->declared_symbol);
+            break;
+
+        case AstNodeKind::kStructDeclaration: {
+            auto* decl = static_cast<StructDeclarationNode*>(node);
+            Register(decl->declared_symbol);
+            RegisterNamespaceStatement(decl->instances);
+            break;
+        }
+
+        case AstNodeKind::kInterfaceDeclaration: {
+            auto* decl = static_cast<InterfaceDeclarationNode*>(node);
+            Register(decl->declared_symbol);
+            RegisterNamespaceStatement(decl->instances);
+
+            if (decl->body != nullptr && decl->body->internal_scope != nullptr &&
+                decl->body->internal_scope->kind() == ScopeKind::kBlockTransparent)
+            {
+                for (const auto& [_, symbol] : decl->body->internal_scope->symbols()) {
+                    Register(symbol.get());
+                }
+            }
+
+            break;
+        }
+
+        default:
+            break;
+        }
     }
 
     TypeAliasDeclarationNode* Parser::ParseTypeAliasDeclaration() {
@@ -781,6 +924,231 @@ namespace glsld {
         }
         node->end = GetPreviousTokenEnd();
         node->declared_symbol = current_scope()->AddSymbol(node, node->name.text, node->name.location, SymbolKind::kTypeAlias);
+
+        return node;
+    }
+
+    NamespaceDeclarationNode* Parser::ParseNamespaceDeclaration() {
+        // current token is "namespace"
+        auto* node  = MakeNode<NamespaceDeclarationNode>(current_scope());
+        node->begin = current_token().location;
+        ConsumeToken();
+
+        auto Fail = [&]() -> NamespaceDeclarationNode* {
+            while (current_token().type != TokenType::kEndOfFile &&
+                   current_token().type != TokenType::kOpenBrace &&
+                   current_token().type != TokenType::kCloseBrace &&
+                   current_token().type != TokenType::kSemicolon)
+            {
+                ConsumeToken();
+            }
+
+            if (current_token().type == TokenType::kOpenBrace) {
+                auto* body = ParseScope();
+                node->children.push_back(body);
+                node->end = body->end;
+            } else {
+                MatchAndConsume(TokenType::kSemicolon);
+                node->end = GetPreviousTokenEnd();
+            }
+
+            return node;
+        };
+
+        auto* parent_space = document_.NamespaceForDeclaration(current_scope());
+
+        while (true) {
+            if (current_token().type != TokenType::kIdentifier) {
+                return Fail();
+            }
+
+            node->names.push_back(current_token());
+            ConsumeToken();
+
+            if (!MatchAndConsume(TokenType::kColonColon)) {
+                break;
+            }
+        }
+
+        // namespace A = B::C;
+        if (MatchAndConsume(TokenType::kEqual)) {
+            if (node->names.size() != 1) {
+                return Fail();
+            }
+
+            // struct / interface block 中不允许使用 namespace 别名
+            if (parent_space == nullptr && current_scope()->kind() != ScopeKind::kCommon) {
+                return Fail();
+            }
+
+            const auto& alias_name = node->names.front();
+
+            const auto target_name = ProbeName();
+            if (!target_name.has_value()) {
+                return Fail();
+            }
+
+            const auto found = target_name->qualifier_space != nullptr
+                ? target_name->qualifier_space->Lookup(target_name->leaf.text)
+                : document_.LookupUnqualified(current_scope(), target_name->leaf.text);
+            auto* single = std::get_if<const SymbolInfo*>(&found);
+            if (single == nullptr || *single == nullptr || (*single)->kind != SymbolKind::kNamespace) {
+                return Fail();
+            }
+
+            auto* target_space = document_.FindNamespace(*single);
+            if (target_space == nullptr) {
+                return Fail();
+            }
+
+            ConsumeToken(target_name->token_count);
+
+            if (!MatchAndConsume(TokenType::kSemicolon)) {
+                return Fail();
+            }
+
+            node->end = GetPreviousTokenEnd();
+            node->alias_target = document_.StoreTokenText(target_name->spelling);
+
+            BindNamePrefixes(*target_name);
+            document_.bindings.insert_or_assign(target_name->leaf.location, *single);
+
+            SymbolReference existing{};
+
+            if (parent_space != nullptr) {
+                existing = parent_space->Lookup(alias_name.text);
+            } else if (const auto* local = current_scope()->FindSymbolInCurrentScope(alias_name.text)) {
+                existing = local;
+            }
+
+            if (!std::holds_alternative<std::monostate>(existing)) {
+                auto* old = std::get_if<const SymbolInfo*>(&existing);
+                if (old == nullptr || *old == nullptr || (*old)->kind != SymbolKind::kNamespace) {
+                    return node;
+                }
+
+                const auto* old_space = document_.FindNamespace(*old);
+                if (old_space == nullptr      ||
+                    old_space != target_space || // namespace A = B; namespace A = C; 非法
+                    old_space->symbol == *old)   // namespace A { ... } namespace A = B; 非法
+                {
+                    return node;
+                }
+
+                node->declared_symbol = const_cast<SymbolInfo*>(*old);
+            } else {
+                auto* symbol = current_scope()->AddSymbol(node, alias_name.text, alias_name.location, SymbolKind::kNamespace);
+                node->declared_symbol = symbol;
+
+                document_.namespace_symbols.try_emplace(symbol, target_space);
+                if (parent_space != nullptr) {
+                    parent_space->members.try_emplace(alias_name.text, symbol);
+                }
+
+                current_scope()->visible_types_.erase(alias_name.text);
+            }
+
+            document_.bindings.insert_or_assign(alias_name.location, node->declared_symbol);
+            return node;
+        }
+
+        if (parent_space == nullptr || current_token().type != TokenType::kOpenBrace) {
+            return Fail();
+        }
+
+        auto* space = parent_space;
+        for (const auto& [i, name] : node->names | std::views::enumerate) {
+            auto* owner = space;
+            const auto existing = owner->Lookup(name.text);
+            if (auto* single = std::get_if<const SymbolInfo*>(&existing)) { // 重开已有 namespace
+                if (*single == nullptr || (*single)->kind != SymbolKind::kNamespace) {
+                    return Fail();
+                }
+
+                space = document_.FindNamespace(*single);
+                if (space == nullptr || space->symbol != *single) {
+                    return Fail();
+                }
+            } else if (std::holds_alternative<std::monostate>(existing)) {
+                auto created = std::make_unique<NamespaceInfo>();
+                created->parent = owner;
+
+                SymbolInfo* symbol = nullptr;
+
+                if (std::cmp_equal(i, 0)) { // 第一层 namespace 直接注册到当前作用域
+                    symbol = current_scope()->AddSymbol(node, name.text, name.location, SymbolKind::kNamespace);
+                    if (symbol == nullptr || symbol->kind != SymbolKind::kNamespace) {
+                        return Fail();
+                    }
+                } else { // 非第一层 namespace 需要创建一个虚拟符号，挂载到父 namespace 的成员列表
+                    created->owner_symbol = std::make_unique<SymbolInfo>();
+                    symbol = created->owner_symbol.get();
+
+                    symbol->name          = std::string(name.text);
+                    symbol->location      = name.location;
+                    symbol->kind          = SymbolKind::kNamespace;
+                    symbol->located_scope = current_scope();
+                    symbol->node          = node;
+                }
+
+                created->symbol = symbol;
+                space = created.get();
+
+                document_.namespaces.push_back(std::move(created));
+                document_.namespace_symbols.try_emplace(symbol, space);
+                owner->members.try_emplace(name.text, symbol);
+            } else {
+                return Fail();
+            }
+
+            document_.bindings.insert_or_assign(name.location, space->symbol);
+        }
+
+        auto* declared_symbol = const_cast<SymbolInfo*>(space->symbol);
+        node->declared_symbol = declared_symbol;
+
+        const auto open = current_token().location;
+        ConsumeToken(); // {
+
+        auto* physical = EnterScope(open, declared_symbol, ScopeKind::kNamespace);
+        node->internal_scope = physical;
+
+        if (declared_symbol->internal_scope == nullptr) {
+            declared_symbol->internal_scope = physical;
+        }
+
+        [&](this auto&& self, const NamespaceInfo* current) -> void {
+            // 将上层 namespace 的所有可见类型传播到当前 namespace 的物理作用域
+            if (current->parent != nullptr) {
+                self(current->parent);
+            }
+
+            for (const auto& [name, reference] : current->members) {
+                auto* single = std::get_if<const SymbolInfo*>(&reference);
+                if (single != nullptr && IsTypeSymbol(*single)) {
+                    physical->visible_types_.insert_or_assign(name, const_cast<SymbolInfo*>(*single));
+                } else {
+                    physical->visible_types_.erase(name);
+                }
+            }
+        }(space);
+
+        while (current_token().type != TokenType::kEndOfFile &&
+               current_token().type != TokenType::kCloseBrace)
+        {
+            const auto before = token_index_;
+            if (auto* child = ParseStatement()) {
+                node->children.push_back(child);
+            }
+
+            if (token_index_ == before) {
+                ConsumeToken();
+            }
+        }
+
+        node->end = GetCurrentTokenEnd();
+        MatchAndConsume(TokenType::kCloseBrace);
+        LeaveScope(node->end);
 
         return node;
     }
@@ -1312,6 +1680,7 @@ namespace glsld {
         }
 
         auto* symbol = current_scope()->AddSymbol(nullptr, name_token.text, name_token.location, SymbolKind::kOpaqueType);
+        document_.RegisterNamespaceMember(symbol, name_token.text);
         symbol->type_info = {
             .typename_token = name_token,
             .type_desc{ .family = BaseFamily::kOpaque }
@@ -1501,6 +1870,34 @@ namespace glsld {
                 continue;
             }
 
+            if (token.type == TokenType::kIdentifier || token.type == TokenType::kColonColon) {
+                const auto name = ProbeName(offset);
+                if (!name.has_value()) {
+                    return false;
+                }
+
+                const SymbolInfo* type_symbol = nullptr;
+
+                if (name->qualifier_space != nullptr) {
+                    const auto found = name->qualifier_space->Lookup(name->leaf.text);
+                    if (auto* single = std::get_if<const SymbolInfo*>(&found);
+                        single != nullptr && IsTypeSymbol(*single))
+                    {
+                        type_symbol = *single;
+                    }
+                } else {
+                    type_symbol = current_scope()->FindVisibleType(name->leaf.text);
+                }
+
+                if (type_symbol == nullptr || has_type) {
+                    return false;
+                }
+
+                has_type = true;
+                offset += static_cast<int>(name->token_count);
+                continue;
+            }
+
             // 除限定符外，只能出现一个类型名
             if (has_type) {
                 return false;
@@ -1561,6 +1958,7 @@ namespace glsld {
         case TokenType::kBuiltInFunction:
         case TokenType::kPrimitive:
         case TokenType::kSpirvIntrinsic:
+        case TokenType::kColonColon:
             return ParseVariableReference();
 
         // 前缀一元运算符 (!b, -x, ++i, --j, ~mask)
@@ -1590,11 +1988,6 @@ namespace glsld {
         node->target_type = ParseTypeSpec(TypeParseContext::kTypeId);
         MatchAndConsume(TokenType::kCloseParen);
 
-        const auto& type_token = node->target_type.typename_token();
-        if (type_token.type == TokenType::kIdentifier) {
-            node->target_type.named_type_symbol = current_scope()->FindVisibleType(type_token.text);
-        }
-
         node->operand = ParseExpression(Precedence::kTypecast);
 
         if (node->operand != nullptr) {
@@ -1621,6 +2014,31 @@ namespace glsld {
 
     VariableExpressionNode* Parser::ParseVariableReference() {
         auto* node = MakeNode<VariableExpressionNode>(current_scope());
+
+        if (const auto name = ProbeName(); name.has_value() && name->qualifier_space != nullptr) {
+            node->begin           = name->begin;
+            node->original_token  = name->leaf;
+            node->name            = name->leaf.text;
+            node->qualifier_space = name->qualifier_space;
+            node->written_name    = document_.StoreTokenText(name->spelling);
+
+            const auto found = name->qualifier_space->Lookup(name->leaf.text);
+            if (auto* single = std::get_if<const SymbolInfo*>(&found);
+                single != nullptr && IsTypeSymbol(*single))
+            {
+                node->named_type_symbol = *single;
+            }
+
+            BindNamePrefixes(*name);
+            ConsumeToken(name->token_count);
+
+            node->node_type = current_token().type == TokenType::kOpenParen
+                ? VariableExpressionNode::NodeType::kFunctionCallee
+                : VariableExpressionNode::NodeType::kCommonVariable;
+            node->end = GetPreviousTokenEnd();
+            return node;
+        }
+
         const auto& token = current_token();
 
         if (token.type == TokenType::kIdentifier) {
@@ -2347,12 +2765,14 @@ namespace glsld {
         for (const auto& param : node->params) {
             std::string param_typename;
 
-            for (const auto& specifier : param->type_spec.specifiers) {
+            for (const auto& [i, specifier] : param->type_spec.specifiers | std::views::enumerate) {
                 if (!param_typename.empty()) {
                     param_typename += " ";
                 }
 
-                if (specifier.text != "spirv_type") {
+                if (std::cmp_equal(i + 1, param->type_spec.specifiers.size()) && !param->type_spec.written_typename.empty()) {
+                    param_typename += param->type_spec.written_typename;
+                } else if (specifier.text != "spirv_type") {
                     param_typename += specifier.text;
                 } else if (param->type_spec.spirv_type != nullptr) {
                     const auto parameters = Utils::BuildQualifierParameterList(param->type_spec.spirv_type);

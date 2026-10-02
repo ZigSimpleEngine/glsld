@@ -2,9 +2,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <stack>
+#include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
@@ -55,6 +58,18 @@ namespace glsld {
         Precedence GetInfixPrecedence(TokenType type);
         bool IsRightAssociative(TokenType type);
 
+        struct NameProbe {
+            Token                leaf;
+            SourceLocation       begin;
+            const NamespaceInfo* qualifier_space{ nullptr };
+            std::int64_t         token_count{};
+            std::string          spelling;
+            std::vector<std::pair<Token, const SymbolInfo*>> prefixes;
+        };
+
+        std::optional<NameProbe> ProbeName(std::int64_t offset = 0);
+        void BindNamePrefixes(const NameProbe& name);
+
         void Parse(SourceTable& source_table,
                    IncludeLoader& include_loader,
                    IncludeDirectoryHandle include_dirs);
@@ -84,8 +99,10 @@ namespace glsld {
         };
 
         TypeSpec ParseTypeSpec(TypeParseContext context = TypeParseContext::kDeclarationPrefix);
+        void RegisterNamespaceStatement(StatementNode* node);
 
         TypeAliasDeclarationNode* ParseTypeAliasDeclaration();
+        NamespaceDeclarationNode* ParseNamespaceDeclaration();
         FunctionTypeSpec* ParseFunctionTypeSpec();
         ArenaVector<Token> CaptureBalancedTokens(TokenType open, TokenType close);
         QualifierArgumentNode* ParseQualifierArguments(std::span<const Token> tokens);

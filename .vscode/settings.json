@@ -12,5 +12,6 @@
 	"glsld.mimalloc.verbose": true,
 	"glsld.backgroundIndex.roots": [
 		"${workspaceFolder}/glsld/Tests"
-	]
+	],
+	"cmake.sourceDirectory": "Z:/Source/glsld/mimalloc/mimalloc"
 }

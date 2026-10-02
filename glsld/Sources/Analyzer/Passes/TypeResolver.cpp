@@ -352,10 +352,10 @@ namespace glsld {
         document_.bindings.try_emplace(function_symbol->location, function_symbol);
         function_symbol->type_info = ExtractTypeInfo(node->type_spec, node->located_scope);
 
-        const auto* block_symbol = function_symbol->type_info.block_symbol;
-        if (function_symbol->type_info.block_symbol != nullptr) {
-            document_.bindings.try_emplace(function_symbol->type_info.typename_token.location, block_symbol);
-        }
+        // const auto* block_symbol = function_symbol->type_info.block_symbol;
+        // if (function_symbol->type_info.block_symbol != nullptr) {
+        //     document_.bindings.try_emplace(function_symbol->type_info.typename_token.location, block_symbol);
+        // }
 
         function_symbol->param_typeinfos.clear();
         for (auto& param_node : node->params) {
@@ -972,14 +972,14 @@ namespace glsld {
 
                 return std::visit(Overloaded{
                     [&](const SymbolInfo* best_match) -> SymbolReferenceView {
-                        callee_node->evaluated_type            = best_match->type_info;
-                        node->evaluated_type                   = best_match->type_info;
-                        document_.bindings[callee_node->begin] = best_match;
+                        callee_node->evaluated_type = best_match->type_info;
+                        node->evaluated_type        = best_match->type_info;
+                        document_.bindings[callee_node->original_token.location] = best_match;
                         return best_match;
                     },
                     [&](const SymbolList&) -> SymbolReferenceView {
                         const auto referenced = document_.ReferenceSymbol(resolved);
-                        document_.bindings[callee_node->begin] = referenced;
+                        document_.bindings[callee_node->original_token.location] = referenced;
                         return referenced;
                     },
                     [](std::monostate) -> SymbolReferenceView {
@@ -1018,9 +1018,9 @@ namespace glsld {
                     };
                 }
 
-                callee_node->evaluated_type            = result_type;
-                node->evaluated_type                   = result_type;
-                document_.bindings[callee_node->begin] = symbol;
+                callee_node->evaluated_type = result_type;
+                node->evaluated_type        = result_type;
+                document_.bindings[callee_node->original_token.location] = symbol;
 
                 return symbol;
             },
@@ -1753,7 +1753,13 @@ namespace glsld {
             typename_token.type == TokenType::kIdentifier &&
             located_scope != nullptr)
         {
-            type_symbol = located_scope->FindTypeSymbol(typename_token.text);
+            const auto found = document_.LookupUnqualified(located_scope, typename_token.text);
+
+            if (const auto* single = std::get_if<const SymbolInfo*>(&found);
+                single != nullptr && IsTypeSymbol(*single))
+            {
+                type_symbol = *single;
+            }
         }
 
         if (type_symbol != nullptr) {

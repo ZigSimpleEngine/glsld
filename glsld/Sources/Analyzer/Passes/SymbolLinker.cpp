@@ -37,68 +37,28 @@ namespace glsld {
         if (node->named_type_symbol != nullptr) {
             node->linked_symbols = node->named_type_symbol;
         } else {
-            switch (node->node_type) {
-                using enum VariableExpressionNode::NodeType;
-            case kCommonVariable: {
-                node->linked_symbols = scope->FindSymbol(node->name);
-
-                const bool nothing_linked = std::holds_alternative<std::monostate>(node->linked_symbols);
-                const bool linked_nullptr = std::holds_alternative<const SymbolInfo*>(node->linked_symbols)
-                                         && std::get<const SymbolInfo*>(node->linked_symbols) == nullptr;
-
-                if (nothing_linked || linked_nullptr) {
-                    const auto functions = document_.symbols.FindFunctionsByOriginalName(node->name);
-                    if (!std::holds_alternative<std::monostate>(functions)) {
-                        node->linked_symbols = document_.ReferenceSymbol(functions);
-                        node->node_type      = VariableExpressionNode::NodeType::kFunctionCallee;
-                    }
-                }
-
-                break;
+            SymbolReference found;
+            if (node->qualifier_space != nullptr) {
+                found = node->qualifier_space->Lookup(node->name);
+            } else {
+                found = document_.LookupUnqualified(scope, node->name);
             }
 
-            case kFunctionCallee: {
-                auto FindConstructor = [node, scope]() -> void {
-                    node->linked_symbols = scope->FindVisibleType(node->name);
-                };
-
-                auto it = function_cache_.find(node->name);
-                if (it != function_cache_.end()) {
-                    if (std::holds_alternative<std::monostate>(it->second)) {
-                        FindConstructor();
-                    } else {
-                        node->linked_symbols = document_.ReferenceSymbol(it->second);
-                    }
-
-                    break;
-                }
-
-                auto functions = document_.symbols.FindFunctionsByOriginalName(node->name);
-                auto [inserted_it, _] = function_cache_.try_emplace(node->name, std::move(functions));
-
-                if (std::holds_alternative<std::monostate>(inserted_it->second)) {
-                    // constructor calling, like "BufferReference ref = BufferReference(device_address);"
-                    FindConstructor();
-                    break;
-                }
-
-                node->linked_symbols = document_.ReferenceSymbol(inserted_it->second);
-                break;
-            }
-
-            default:
-                break;
-            }
+            node->linked_symbols = document_.ReferenceSymbol(found);
         }
+
+        const auto binding_location = node->original_token.location;
 
         std::visit(Overloaded{
             [&](const SymbolInfo* symbol) -> void {
-                if (!document_.macro_traces.contains(node->original_token.location)) {
-                    document_.bindings.try_emplace(node->original_token.location, symbol);
+                if (symbol != nullptr && !document_.macro_traces.contains(binding_location)) {
+                    document_.bindings.insert_or_assign(binding_location, symbol);
                 }
             },
             [&](SymbolListView list) -> void {
-                document_.bindings.try_emplace(node->begin, list);
+                if (!document_.macro_traces.contains(binding_location)) {
+                    document_.bindings.insert_or_assign(binding_location, list);
+                }
             },
             [](std::monostate) -> void {}
         }, node->linked_symbols);

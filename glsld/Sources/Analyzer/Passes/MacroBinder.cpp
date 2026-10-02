@@ -57,15 +57,9 @@ namespace glsld {
                 continue;
             }
 
-            const auto* symbol = scope->FindSymbol(trace.token.text);
-            if (symbol != nullptr) {
-                document_.bindings.try_emplace(location, symbol);
-                continue;
-            }
-
-            const auto functions = document_.symbols.FindFunctionsByOriginalName(trace.token.text);
-            if (!std::holds_alternative<std::monostate>(functions)) {
-                document_.bindings.try_emplace(location, document_.ReferenceSymbol(functions));
+            const auto found = document_.LookupUnqualified(scope, trace.token.text);
+            if (!std::holds_alternative<std::monostate>(found)) {
+                document_.bindings.try_emplace(location, document_.ReferenceSymbol(found));
             }
         }
     }
@@ -105,15 +99,9 @@ namespace glsld {
                 return;
             }
 
-            const auto* symbol = scope->FindSymbol(token.text);
-            if (symbol != nullptr) {
-                document_.bindings.try_emplace(token.location, symbol);
-                return;
-            }
-
-            const auto functions = document_.symbols.FindFunctionsByOriginalName(token.text);
-            if (!std::holds_alternative<std::monostate>(functions)) {
-                document_.bindings.try_emplace(token.location, document_.ReferenceSymbol(functions));
+            const auto found = document_.LookupUnqualified(scope, token.text);
+            if (!std::holds_alternative<std::monostate>(found)) {
+                document_.bindings.try_emplace(token.location, document_.ReferenceSymbol(found));
             }
         };
 

@@ -6,7 +6,11 @@ namespace glsld {
     }
 
     inline SourceLocation TypeSpec::begin_location() const {
-        return specifiers.empty() ? SourceLocation{} : specifiers.front().location;
+        if (specifiers.empty())
+            return {};
+        if (specifiers.size() == 1 && typename_begin.source_file() != nullptr)
+            return typename_begin;
+        return specifiers.front().location;
     }
 
     inline bool TypeSpec::empty() const {
@@ -139,6 +143,10 @@ namespace glsld {
 
     inline AstNodeKind TypeAliasDeclarationNode::kind() const {
         return AstNodeKind::kTypeAliasDeclaration;
+    }
+
+    inline AstNodeKind NamespaceDeclarationNode::kind() const {
+        return AstNodeKind::kNamespaceDeclaration;
     }
 
     inline AstNodeKind VariableDeclarationNode::kind() const {

@@ -296,16 +296,18 @@ namespace glsld::Providers {
             int type_index = -1;
 
             switch (kind) {
+            case SymbolKind::kNamespace:    type_index = 0; break;
             case SymbolKind::kAttribute:    type_index = 1; break;
-            case SymbolKind::kInterface:    type_index = 4; break;
-            case SymbolKind::kStruct:       type_index = 5; break;
-            case SymbolKind::kParameter:    type_index = 7; break;
-            case SymbolKind::kVariable:     type_index = 8; break;
 
             case SymbolKind::kOpaqueType:
             case SymbolKind::kTypeAlias:
                 type_index = 2;
                 break;
+
+            case SymbolKind::kInterface:    type_index = 4; break;
+            case SymbolKind::kStruct:       type_index = 5; break;
+            case SymbolKind::kParameter:    type_index = 7; break;
+            case SymbolKind::kVariable:     type_index = 8; break;
 
             case SymbolKind::kFunctionDecl:
             case SymbolKind::kFunctionImpl:
@@ -1068,7 +1070,14 @@ namespace glsld::Providers {
             }
         }
 
-        const auto candidates = snapshot->symbols.FindFunctionsByOriginalName(callee->name);
+        const auto candidates = [&]() -> SymbolReference {
+            if (callee->qualifier_space != nullptr) {
+                return callee->qualifier_space->Lookup(callee->name);
+            }
+
+            return snapshot->LookupUnqualified(callee->located_scope, callee->name);
+        }();
+
         if (std::holds_alternative<std::monostate>(candidates)) {
             return std::nullopt;
         }
@@ -1454,17 +1463,21 @@ namespace glsld::Providers {
             return {};
         }
 
-        SourceLocation dot_location;
-        auto it = std::ranges::upper_bound(snapshot->raw_tokens, location, std::ranges::less{}, &Token::location);
-        if (it != snapshot->raw_tokens.begin()) {
-            dot_location = std::prev(it)->location;
+        auto it = std::ranges::lower_bound(snapshot->raw_tokens, location, std::ranges::less{}, &Token::location);
+        if (it == snapshot->raw_tokens.begin()) {
+            return {};
+        }
+
+        const auto& dot_token = *std::prev(it);
+        if (dot_token.type != TokenType::kDot) {
+            return {};
         }
 
         ABORT_IF_CANCELLED();
-        ContextLocator locator(*snapshot, dot_location);
+        ContextLocator locator(*snapshot, dot_token.location);
         const auto* node = locator.result();
 
-        if (node->kind() != AstNodeKind::kExpression) {
+        if (node == nullptr) {
             return {};
         }
 
@@ -1891,7 +1904,11 @@ namespace glsld::Providers {
 
             auto& metadata = MetadataManager::GetInstance();
 
-            auto type_name = std::string(node->type_spec.typename_token().text);
+            const auto type_name = std::string(
+                node->type_spec.written_typename.empty()
+                    ? node->type_spec.typename_token().text
+                    : node->type_spec.written_typename);
+
             if (auto subtype = metadata.GetLexicalSubtype(type_name);
                 subtype.has_value() && subtype->contains("Qualifiers"))
             {
@@ -2117,7 +2134,7 @@ namespace glsld::Providers {
 
             case AstNodeKind::kVariableExpression: {
                 auto* node = static_cast<const VariableExpressionNode*>(expr);
-                return std::string(node->name);
+                return std::string(node->written_name.empty() ? node->name : node->written_name);
             }
 
             case AstNodeKind::kCastExpression: {
@@ -2580,6 +2597,22 @@ namespace glsld::Providers {
             return markdown;
         }
 
+        case SymbolKind::kNamespace: {
+            title = std::format("**Namespace** `{}`", symbol->name);
+
+            const auto* node =
+                symbol->node != nullptr && symbol->node->kind() == AstNodeKind::kNamespaceDeclaration
+                ? static_cast<const NamespaceDeclarationNode*>(symbol->node) : nullptr;
+
+            if (node != nullptr && !node->alias_target.empty()) {
+                declare = std::format("namespace {} = {};", symbol->name, node->alias_target);
+            } else {
+                declare = std::format("namespace {} {{ ... }}", symbol->name);
+            }
+
+            break;
+        }
+
         case SymbolKind::kVariable:
         case SymbolKind::kParameter: {
             auto* node = static_cast<const VariableDeclarationNode*>(symbol->node);
@@ -2593,6 +2626,8 @@ namespace glsld::Providers {
                 scope_prefix = "**Global Variable**";
             } else if (symbol->located_scope->kind() == ScopeKind::kCommon) {
                 scope_prefix = "**Local Variable**";
+            } else if (symbol->located_scope->kind() == ScopeKind::kNamespace) {
+                scope_prefix = "**Global Variable**";
             }
 
             if (!scope_prefix.contains("Field")) {

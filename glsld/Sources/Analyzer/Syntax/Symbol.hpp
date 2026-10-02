@@ -181,15 +181,15 @@ namespace glsld {
         const SymbolInfo* FindVisibleType(std::string_view name) const;
         void GetVisibleSymbols(std::vector<const SymbolInfo*>& symbols) const;
 
+        const Scope* parent() const;
         const SymbolInfo* closest_host() const;
         const SymbolInfo* host_symbol() const;
         const auto& interval() const;
         const auto& children() const;
         const auto& symbols() const;
-        ScopeKind   kind() const;
+        ScopeKind kind() const;
 
     private:
-        friend struct Document;
         friend class DocumentSymbols;
         friend class MetadataManager;
         friend class Parser;
