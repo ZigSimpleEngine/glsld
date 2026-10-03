@@ -1453,6 +1453,37 @@ namespace glsld::Providers {
         return items;
     }
 
+    namespace {
+        struct SwizzleFamilyText {
+            std::string_view prefix;
+            std::string_view scalar;
+        };
+
+        std::optional<SwizzleFamilyText> GetSwizzleFamilyText(BaseFamily family) {
+            switch (family) {
+            case BaseFamily::kFloat: return SwizzleFamilyText{ .prefix = "",  .scalar = "float" };
+            case BaseFamily::kBool:  return SwizzleFamilyText{ .prefix = "b", .scalar = "bool"  };
+            case BaseFamily::kInt:   return SwizzleFamilyText{ .prefix = "i", .scalar = "int"   };
+            case BaseFamily::kUint:  return SwizzleFamilyText{ .prefix = "u", .scalar = "uint"  };
+            default:                return std::nullopt;
+            }
+        }
+
+        std::string SwizzleResultName(const SwizzleFamilyText& family, int count) {
+            if (count <= 1) {
+                return std::string(family.scalar);
+            }
+
+            return std::format("{}vec{}", family.prefix, count);
+        }
+
+        bool IsVectorSwizzleTarget(const TypeInfo& type_info) {
+            return type_info.block_symbol == nullptr && !type_info.is_array() &&
+                type_info.type_desc.arithmetic_structure() == ArithmeticStructure::kVector &&
+                type_info.type_desc.vector_length >= 2 && type_info.type_desc.vector_length <= 4;
+        }
+    }
+
     nlohmann::json GetFieldCompletionItems(
         Context& context,
         Snapshot snapshot,
@@ -1521,7 +1552,134 @@ namespace glsld::Providers {
             items.push_back(item);
         }
 
+        auto AddBuiltinItem = [&](std::string_view label, int kind, const std::string& detail) -> void {
+            if (!existing_labels.emplace(label).second) {
+                return;
+            }
+
+            nlohmann::json item;
+            item["label"] = label;
+            item["kind"]  = kind;
+            if (!detail.empty()) {
+                item["detail"] = detail;
+            }
+
+            items.push_back(item);
+        };
+
+        if (IsVectorSwizzleTarget(type_info)) {
+            const auto& desc   = type_info.type_desc;
+            const auto  family = GetSwizzleFamilyText(desc.family);
+
+            if (family.has_value()) {
+                const std::string base_name =
+                    std::format("{}vec{}", family->prefix, desc.vector_length);
+
+                static constexpr std::string_view kSets[] = { "xyzw", "rgba", "stpq" };
+                for (const auto set : kSets) {
+                    ABORT_IF_CANCELLED();
+
+                    const auto alphabet = set.substr(0, static_cast<std::size_t>(desc.vector_length));
+                    for (auto combo_length = 1; combo_length <= 4; ++combo_length) {
+                        std::string label(static_cast<std::size_t>(combo_length), alphabet[0]);
+
+                        while (true) {
+                            ABORT_IF_CANCELLED();
+
+                            AddBuiltinItem(label, 5,
+                                std::format("{}.{} -> {}",
+                                    base_name, label,
+                                    SwizzleResultName(*family, combo_length)));
+
+                            auto pos = static_cast<int>(label.size()) - 1;
+                            for (; pos >= 0; --pos) {
+                                const auto at = alphabet.find(label[static_cast<std::size_t>(pos)]);
+                                if (at + 1 < alphabet.size()) {
+                                    label[static_cast<std::size_t>(pos)] = alphabet[at + 1];
+                                    break;
+                                }
+
+                                label[static_cast<std::size_t>(pos)] = alphabet[0];
+                            }
+
+                            if (pos < 0) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (type_info.is_array()) {
+            AddBuiltinItem("length", 2, "int length()");
+        }
+
         return items;
+    }
+
+    std::string BuildSwizzleHoverMarkdown(
+        Context& context,
+        Snapshot snapshot,
+        const SourceLocation& location)
+    {
+        if (snapshot == nullptr) {
+            return {};
+        }
+
+        const auto index = FindCursorTokenIndex(snapshot->raw_tokens, location);
+        if (!index.has_value() || *index == 0) {
+            return {};
+        }
+
+        const auto& member_token = snapshot->raw_tokens[*index];
+        if (member_token.type != TokenType::kIdentifier) {
+            return {};
+        }
+
+        if (snapshot->raw_tokens[*index - 1].type != TokenType::kDot) {
+            return {};
+        }
+
+        ABORT_IF_CANCELLED();
+        ContextLocator locator(*snapshot, member_token.location);
+        const auto* node = locator.result();
+        if (node == nullptr) {
+            return {};
+        }
+
+        auto* expr_node = static_cast<const ExpressionNode*>(node);
+        const auto& type_info = expr_node->evaluated_type;
+        if (!type_info.is_valid()) {
+            return {};
+        }
+
+        if (IsVectorSwizzleTarget(type_info)) {
+            const auto& desc   = type_info.type_desc;
+            const auto  family = GetSwizzleFamilyText(desc.family);
+            const auto  swizzle = Utils::ParseVectorSwizzle(
+                member_token.text, static_cast<std::size_t>(desc.vector_length));
+
+            if (family.has_value() && swizzle.has_value()) {
+                const std::string base_name =
+                    std::format("{}vec{}", family->prefix, desc.vector_length);
+                const std::string result_name =
+                    SwizzleResultName(*family, static_cast<int>(swizzle->count));
+                const std::string access =
+                    std::format("{}.{}", base_name, member_token.text);
+
+                return std::format("**Swizzle** `{}`\n\n---\n**Type** -> `{}`\n\n---\n```glsl\n{}\n```",
+                    access, result_name, access);
+            }
+
+            return {};
+        }
+
+        if (type_info.is_array() && member_token.text == "length") {
+            return "**Method** `length()`\n\n---\n**Type** -> `int`\n\n---\n```glsl\nint length()\n```";
+        }
+
+        return {};
     }
 
     nlohmann::json GetExtensionCompletionItems(

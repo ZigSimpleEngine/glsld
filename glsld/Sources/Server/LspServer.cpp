@@ -886,6 +886,16 @@ namespace glsld {
 
         const auto symbols = Providers::GetDefinitionSymbols(context, snapshot, target, false);
         if (symbols.empty()) {
+            if (auto swizzle = Providers::BuildSwizzleHoverMarkdown(context, snapshot, target);
+                !swizzle.empty())
+            {
+                nlohmann::json response;
+                response["contents"]["kind"]  = "markdown";
+                response["contents"]["value"] = std::move(swizzle);
+
+                return response;
+            }
+
             return {};
         }
 

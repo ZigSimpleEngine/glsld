@@ -108,4 +108,9 @@ namespace glsld::Providers {
         const SourceLocation& location,
         std::string_view current_uri,
         const Formatter& formatter);
+
+    std::string BuildSwizzleHoverMarkdown(
+        Context& context,
+        Snapshot snapshot,
+        const SourceLocation& location);
 }
