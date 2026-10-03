@@ -1067,7 +1067,15 @@ namespace glsld {
         Unicode::PositionMapper mapper(snapshot->source);
         const auto target = ConvertToParserPosition(workspace_.InternSource(uri), mapper, position);
 
-        if (context.params["context"]["triggerCharacter"] == ".") {
+        bool after_dot = context.params["context"]["triggerCharacter"] == ".";
+        if (!after_dot) {
+            const auto dot_it = std::ranges::lower_bound(
+                snapshot->raw_tokens, target, std::ranges::less{}, &Token::location);
+            after_dot = dot_it != snapshot->raw_tokens.begin() &&
+                std::prev(dot_it)->type == TokenType::kDot;
+        }
+
+        if (after_dot) {
             return Providers::GetFieldCompletionItems(context, snapshot, target, workspace_.type_member_index());
         }
 
