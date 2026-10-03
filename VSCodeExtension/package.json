@@ -1,6 +1,6 @@
 {
-	"name": "glsld",
-	"displayName": "glsld - GLSL Language Server",
+	"name": "glsld-fork",
+	"displayName": "glsld (fork) - GLSL Language Server",
 	"icon": "resources/icons/main.png",
 	"description": "GLSL language support with diagnostics, hover, completion, go-to-definition, and more",
 	"author": "LBV 2012-26",
@@ -118,6 +118,11 @@
 					"default": "",
 					"description": "Path to the glslc executable. Leave empty to use %VULKAN_SDK%\\Bin\\glslc.exe when available, then resolve glslc.exe from PATH."
 				},
+				"glsld.glslangValidator.path": {
+					"type": "string",
+					"default": "",
+					"description": "Path to the glslangValidator executable used for WebGL shaders (#version 100 / 300 es). Leave empty to use %VULKAN_SDK%\\Bin\\glslangValidator.exe when available, then resolve glslangValidator.exe from PATH."
+				},
 				"glsld.clangFormat.path": {
 					"type": "string",
 					"default": "clang-format.exe",
@@ -127,7 +132,7 @@
 				"glsld.diagnostics.enabled": {
 					"type": "boolean",
 					"default": true,
-					"description": "Enable diagnostic errors and warnings via glslc compilation."
+					"description": "Enable diagnostic errors and warnings via glslc / glslangValidator compilation."
 				},
 				"glsld.backgroundIndex.roots": {
 					"type": "array",

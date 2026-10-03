@@ -1402,6 +1402,11 @@ namespace glsld {
             diagnostic_engine_.set_glslc_path(std::filesystem::path(glsld["glslcPath"].get<std::string>()));
         }
 
+        if (glsld.contains("glslangValidatorPath") && glsld["glslangValidatorPath"].is_string()) {
+            diagnostic_engine_.set_glslang_validator_path(
+                std::filesystem::path(glsld["glslangValidatorPath"].get<std::string>()));
+        }
+
         if (!diagnostics_changed) {
             return;
         }
@@ -1765,14 +1770,22 @@ namespace glsld {
 
         if (StartsWithVersion(source) || it == shader_configs.end()) {
             task.source = std::string(source);
-        } else if (it->second.version.has_value()) {
+        } else if (it->second.version.has_value() && !it->second.version->empty()) {
             task.source = std::format("#version {}\n#line 1\n{}\n\nvoid main() {{}}\n", *it->second.version, source);
+        } else {
+            task.source = std::string(source);
         }
 
         if (it != shader_configs.end()) {
-            task.shader_stage = it->second.shader_stage.value_or("");
-            task.target_env   = it->second.target_env.value_or("");
-            task.target_spv   = it->second.target_spv.value_or("");
+            if (it->second.shader_stage.has_value() && !it->second.shader_stage->empty()) {
+                task.shader_stage = it->second.shader_stage;
+            }
+            if (it->second.target_env.has_value() && !it->second.target_env->empty()) {
+                task.target_env = it->second.target_env;
+            }
+            if (it->second.target_spv.has_value() && !it->second.target_spv->empty()) {
+                task.target_spv = it->second.target_spv;
+            }
         }
 
         diagnostic_engine_.Submit(std::move(task));

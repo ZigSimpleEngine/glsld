@@ -425,6 +425,7 @@ export async function pushConfiguration(): Promise<void> {
 	const shaderExtensions = getShaderConfigs(); // from .glsld/config.json
 	const diagnosticsEnabled = config.get<boolean>('diagnostics.enabled', true);
 	const glslcPath = config.get<string>('glslc.path', '').trim();
+	const glslangValidatorPath = config.get<string>('glslangValidator.path', '').trim();
 	const clangFormatPath = config.get<string>('clangFormat.path', 'clang-format.exe').trim() || 'clang-format.exe';
 	const backgroundIndexRoots = getBackgroundIndexRoots(config.get<string[]>('backgroundIndex.roots', []));
 	const systemIncludeDirectories = getSystemIncludeDirectories();
@@ -447,6 +448,7 @@ export async function pushConfiguration(): Promise<void> {
 				activeVariants,
 				diagnosticsEnabled,
 				glslcPath,
+				glslangValidatorPath,
 				clangFormatPath,
 				backgroundIndex: { roots: backgroundIndexRoots },
 				systemIncludeDirectories

@@ -56,13 +56,16 @@ namespace glsld {
         void Stop();
 
         void set_glslc_path(const std::filesystem::path& filename);
+        void set_glslang_validator_path(const std::filesystem::path& filename);
 
     private:
         void Run();
         std::vector<Diagnostic> Compile(const DiagnosticTask& task);
+        std::vector<Diagnostic> CompileWithGlslang(const DiagnosticTask& task);
 
         Callback                    callback_;
         std::string                 glslc_path_;
+        std::string                 glslang_validator_path_;
         std::shared_mutex           mutex_;
         std::condition_variable_any condition_;
         std::queue<DiagnosticTask>  queue_;

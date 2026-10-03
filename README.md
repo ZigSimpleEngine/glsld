@@ -1,4 +1,13 @@
-# glsld
+# glsld (fork)
+
+> [!NOTE]
+> This is a fork with WebGL-oriented diagnostics. Added on top of upstream:
+>
+> - WebGL shader diagnostics: files with `#version 100` or `#version 300 es` are validated with `glslangValidator` (plain GLSL validation, no SPIR-V), because `glslc` rejects ES versions below 310 for any target environment.
+> - Automatic target selection: when no per-file `targetEnv` override is configured, the diagnostic backend is picked from the `#version` directive — `100` / `300 es` and below go to the WebGL path, `310 es` and desktop versions keep the existing `glslc` path. An explicit `targetEnv` always wins.
+> - Self-contained `#include` expansion for the WebGL path (resolved against the file directory and configured system include directories, with `#line` mapping back to original files, plus cycle/depth diagnostics). Errors inside included files are skipped, same as the `glslc` path.
+> - `opengl` / `opengl4.5` choices for per-file `targetEnv`, and a `glsld.glslangValidator.path` setting (defaults to `%VULKAN_SDK%\Bin\glslangValidator.exe`, then `PATH`).
+> - `build-fork.bat`: one-command build of the server, VSIX packaging as `glsld-fork`, and installation into VS Code.
 
 > [!NOTE]
 > This extension is an independent project and is not affiliated with another Visual Studio Code extension that also uses the name `glsld` (https://github.com/daiyousei-qz/glsld). I was the one who discovered the name collision only while preparing this extension for publication on the Visual Studio Code Marketplace.

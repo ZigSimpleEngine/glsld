@@ -34,7 +34,7 @@ interface FileConfig {
 
 const PROPERTY_OPTIONS: Record<string, { values: string[]; isEnum: boolean }> = {
 	shaderStage: { isEnum: true, values: [...ALL_SHADER_STAGES] },
-	targetEnv:   { isEnum: true, values: ['vulkan1.0', 'vulkan1.1', 'vulkan1.2', 'vulkan1.3', 'vulkan1.4'] },
+	targetEnv:   { isEnum: true, values: ['vulkan1.0', 'vulkan1.1', 'vulkan1.2', 'vulkan1.3', 'vulkan1.4', 'opengl', 'opengl4.5'] },
 	targetSpv:   { isEnum: true, values: ['spv1.0', 'spv1.1', 'spv1.2', 'spv1.3', 'spv1.4', 'spv1.5', 'spv1.6'] },
 	version:     { isEnum: false, values: [] },
 };
