@@ -83,6 +83,31 @@
 					}
 				},
 				{
+					"name": "meta.preprocessor.version.commented.glsl",
+					"begin": "^(\\s*)(//)(\\s*)(#)\\s*(version)\\b",
+					"beginCaptures": {
+						"2": {
+							"name": "punctuation.definition.comment.glsl"
+						},
+						"4": {
+							"name": "punctuation.definition.directive.glsl"
+						},
+						"5": {
+							"name": "keyword.control.directive.version.glsl"
+						}
+					},
+					"end": "$",
+					"patterns": [
+						{
+							"name": "support.constant.language-profile.glsl",
+							"match": "\\b(?:core|compatibility|es)\\b"
+						},
+						{
+							"include": "#strings_and_numbers"
+						}
+					]
+				},
+				{
 					"name": "comment.line.double-slash.glsl",
 					"begin": "//",
 					"beginCaptures": {
