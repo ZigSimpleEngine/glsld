@@ -6,6 +6,7 @@
 > - WebGL shader diagnostics: files with `#version 100` or `#version 300 es` are validated with `glslangValidator` (plain GLSL validation, no SPIR-V), because `glslc` rejects ES versions below 310 for any target environment.
 > - Automatic target selection: when no per-file `targetEnv` override is configured, the diagnostic backend is picked from the `#version` directive — `100` / `300 es` and below go to the WebGL path, `310 es` and desktop versions keep the existing `glslc` path. An explicit `targetEnv` always wins.
 > - Self-contained `#include` expansion for the WebGL path (resolved against the file directory and configured system include directories, with `#line` mapping back to original files, plus cycle/depth diagnostics). Errors inside included files are skipped, same as the `glslc` path.
+> - Version hint for includable headers: a `// #version 300 es` comment is honored when the file has no real `#version` directive (real directives always win). The WebGL backend also injects the hinted version for validation, so headers stay includable without breaking the single-`#version` rule.
 > - `opengl` / `opengl4.5` choices for per-file `targetEnv`, and a `glsld.glslangValidator.path` setting (defaults to `%VULKAN_SDK%\Bin\glslangValidator.exe`, then `PATH`).
 > - `build-fork.bat`: one-command build of the server, VSIX packaging as `glsld-fork`, and installation into VS Code.
 

@@ -241,7 +241,7 @@ namespace glsld {
             bool is_es{};
         };
 
-        std::optional<GlslVersion> ParseGlslVersion(std::string_view source) {
+        std::optional<GlslVersion> ParseRealVersion(std::string_view source) {
             auto IsSpace = [](char c) -> bool {
                 return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\f' || c == '\v';
             };
@@ -322,6 +322,94 @@ namespace glsld {
             }
 
             return std::nullopt;
+        }
+
+        std::optional<GlslVersion> ParseCommentVersion(std::string_view source) {
+            auto i = 0uz;
+            while (i < source.size()) {
+                if (source[i] == '/' && i + 1 < source.size() && source[i + 1] == '*') {
+                    const auto end = source.find("*/", i + 2);
+                    if (end == std::string_view::npos) {
+                        return std::nullopt;
+                    }
+                    i = end + 2;
+                    continue;
+                }
+
+                if (source[i] != '/' || i + 1 >= source.size() || source[i + 1] != '/') {
+                    ++i;
+                    continue;
+                }
+
+                auto j = i + 2;
+                const auto eol = source.find('\n', j);
+                const auto line_end = (eol == std::string_view::npos) ? source.size() : eol;
+
+                while (j < line_end && (source[j] == ' ' || source[j] == '\t')) {
+                    ++j;
+                }
+                if (j >= line_end || source[j] != '#') {
+                    i = line_end;
+                    continue;
+                }
+                ++j;
+                while (j < line_end && (source[j] == ' ' || source[j] == '\t')) {
+                    ++j;
+                }
+
+                constexpr std::string_view kVersion = "version";
+                if (line_end - j < kVersion.size() || source.substr(j, kVersion.size()) != kVersion) {
+                    i = line_end;
+                    continue;
+                }
+                j += kVersion.size();
+
+                if (j >= line_end || (source[j] != ' ' && source[j] != '\t')) {
+                    i = line_end;
+                    continue;
+                }
+                while (j < line_end && (source[j] == ' ' || source[j] == '\t')) {
+                    ++j;
+                }
+
+                const auto num_begin = j;
+                while (j < line_end && source[j] >= '0' && source[j] <= '9') {
+                    ++j;
+                }
+                if (num_begin == j) {
+                    i = line_end;
+                    continue;
+                }
+
+                int number = 0;
+                if (!TryParseInteger(source.substr(num_begin, j - num_begin), number)) {
+                    i = line_end;
+                    continue;
+                }
+
+                while (j < line_end && (source[j] == ' ' || source[j] == '\t' || source[j] == '\r')) {
+                    ++j;
+                }
+
+                bool is_es = false;
+                if (j + 2 <= line_end &&
+                    (source[j] == 'e' || source[j] == 'E') &&
+                    (source[j + 1] == 's' || source[j + 1] == 'S'))
+                {
+                    is_es = true;
+                }
+
+                return GlslVersion{ .number = number, .is_es = is_es };
+            }
+
+            return std::nullopt;
+        }
+
+        std::optional<GlslVersion> ParseGlslVersion(std::string_view source) {
+            if (auto real = ParseRealVersion(source)) {
+                return real;
+            }
+            return ParseCommentVersion(source);
         }
 
         std::optional<std::string> ResolveEffectiveTargetEnv(
@@ -505,14 +593,21 @@ namespace glsld {
                 }
             }
 
-            std::string Expand(std::string_view source) {
+            std::string Expand(std::string_view source, bool define_glsld = false) {
                 output_.clear();
                 version_injected_ = false;
+                define_glsld_     = define_glsld;
                 stack_.clear();
                 ExpandText(source, main_basename_, main_parent_, 0);
                 if (!version_injected_) {
-                    output_ = "#extension GL_GOOGLE_cpp_style_line_directive : enable\n#line 1 \"" +
-                        main_basename_ + "\"\n" + output_;
+                    std::string head = "#extension GL_GOOGLE_cpp_style_line_directive : enable\n";
+                    if (define_glsld_) {
+                        head += "#define _GLSLD 1\n";
+                    }
+                    if (const auto hint = ParseCommentVersion(source)) {
+                        head = std::format("#version {}{}\n", hint->number, hint->is_es ? " es" : "") + head;
+                    }
+                    output_ = head + "#line 1 \"" + main_basename_ + "\"\n" + output_;
                 }
                 return std::move(output_);
             }
@@ -527,6 +622,7 @@ namespace glsld {
             std::vector<std::filesystem::path> stack_;
             std::string                        output_;
             bool                               version_injected_{};
+            bool                               define_glsld_{};
 
             static std::filesystem::path Canonical(const std::filesystem::path& path) {
                 std::error_code ec;
@@ -600,6 +696,9 @@ namespace glsld {
                         if (!version_injected_) {
                             version_injected_ = true;
                             EmitLine("#extension GL_GOOGLE_cpp_style_line_directive : enable");
+                            if (define_glsld_) {
+                                EmitLine("#define _GLSLD 1");
+                            }
                             output_ += std::format("#line {} \"{}\"\n", logical + 1, logical_name);
                         }
                         continue;
@@ -909,16 +1008,17 @@ namespace glsld {
             validator_path = glslang_validator_path_;
         }
 
+        const bool has_stage = task.shader_stage.has_value() && !task.shader_stage->empty();
         WebGLIncludeExpander expander(task.filename, task.include_dirs);
-        const std::string expanded = expander.Expand(task.source);
+        const std::string expanded = expander.Expand(task.source, has_stage);
 
         const auto compile_path =
             (std::filesystem::temp_directory_path() / std::filesystem::path(task.filename).filename()).generic_string();
         std::ofstream(compile_path, std::ios::binary) << expanded;
 
         auto command = std::format("\"{}\" ", validator_path);
-        if (task.shader_stage.has_value() && !task.shader_stage->empty()) {
-            command += std::format("-S {} -D_GLSLD ", *task.shader_stage);
+        if (has_stage) {
+            command += std::format("-S {} ", *task.shader_stage);
         }
         command += std::format("\"{}\"", compile_path);
 
